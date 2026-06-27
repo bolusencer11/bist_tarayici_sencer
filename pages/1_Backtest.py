@@ -1,5 +1,5 @@
 """
-BIST Backtest — Filtre Karşılaştırma Sayfası (v2)
+BIST Backtest — Filtre Karşılaştırma Sayfası (v2.1)
 
 5 senaryoyu aynı veri üzerinde paralel çalıştırır:
   0. Baseline:   sadece EMA10↑EMA30 crossover
@@ -10,6 +10,8 @@ BIST Backtest — Filtre Karşılaştırma Sayfası (v2)
 
 Çıkış kuralı (tüm senaryolarda aynı): EMA10↓EMA30 ters crossover
 Benchmark: XU100.IS (BIST-100)
+
+v2.1: session_state ile sonuçlar saklanıyor — dropdown değişimi tabloyu sıfırlamıyor.
 """
 import streamlit as st
 import yfinance as yf
@@ -87,13 +89,8 @@ def prepare_indicators(df):
 # ============================================================
 
 def run_scenario(df, scenario, start_date):
-    """
-    Tek hisse, tek senaryo backtest.
-    scenario: "baseline", "ema200", "volume", "rsi", "all"
-    Dönüş: trade listesi [{"entry_date", "entry_price", "exit_date", "exit_price", "pnl_pct", "days"}]
-    """
+    """Tek hisse, tek senaryo backtest. Trade listesi döndürür."""
     trades = []
-    # start_date öncesini ana göstergeler için kullan; sinyalleri start_date sonrasından al
     df_active = df[df.index >= start_date]
     if len(df_active) < 5:
         return trades
@@ -107,11 +104,9 @@ def run_scenario(df, scenario, start_date):
         date = df_active.index[i]
 
         if not in_position:
-            # Giriş sinyali var mı?
             if not row["cross_up"] or pd.isna(row["EMA200"]) or pd.isna(row["RSI"]) or pd.isna(row["vol_ma20"]):
                 continue
 
-            # Filtreleri uygula
             pass_ema200 = row["Close"] > row["EMA200"]
             pass_volume = row["Volume"] >= 1.5 * row["vol_ma20"] if row["vol_ma20"] > 0 else False
             pass_rsi = 45 <= row["RSI"] <= 65
@@ -133,9 +128,7 @@ def run_scenario(df, scenario, start_date):
                 in_position = True
                 entry_date = date
                 entry_price = float(row["Close"])
-
         else:
-            # Çıkış sinyali (ters crossover)
             if row["cross_down"]:
                 exit_price = float(row["Close"])
                 pnl_pct = (exit_price / entry_price - 1) * 100
@@ -152,7 +145,6 @@ def run_scenario(df, scenario, start_date):
                 entry_date = None
                 entry_price = None
 
-    # Açık pozisyon kalırsa son fiyatla kapat
     if in_position:
         last = df_active.iloc[-1]
         exit_price = float(last["Close"])
@@ -171,7 +163,6 @@ def run_scenario(df, scenario, start_date):
 
 
 def summarize(trades, benchmark_return_pct):
-    """Trade listesinden özet metrikler."""
     if not trades:
         return {
             "n_trades": 0,
@@ -190,7 +181,6 @@ def summarize(trades, benchmark_return_pct):
     avg_win = wins.mean() if len(wins) > 0 else 0
     avg_loss = losses.mean() if len(losses) > 0 else 0
     expectancy = pnls.mean()
-    # Bileşik getiri (her trade'i bir sonrakine bağlayarak)
     total_return = (np.prod(1 + pnls / 100) - 1) * 100
     avg_days = np.mean([t["days"] for t in trades])
     return {
@@ -203,6 +193,95 @@ def summarize(trades, benchmark_return_pct):
         "alpha": total_return - benchmark_return_pct,
         "avg_days": avg_days,
     }
+
+
+def run_full_backtest(tickers, days_back, start_date):
+    """Tüm hesaplamayı kapsayan ana fonksiyon. Sonuç dict döndürür."""
+    # Benchmark
+    bench = fetch_benchmark(days_back)
+    if bench.empty or "Close" not in bench.columns:
+        bench_return = 0
+    else:
+        bench_active = bench[bench.index >= start_date]
+        if len(bench_active) >= 2:
+            bench_return = (bench_active["Close"].iloc[-1] / bench_active["Close"].iloc[0] - 1) * 100
+        else:
+            bench_return = 0
+
+    # Veri çek
+    MIN_BARS = 210
+    all_data = {}
+    debug_msgs = []
+    progress = st.progress(0.0, text="Veri indiriliyor...")
+    batch_size = 50
+    n_batches = (len(tickers) + batch_size - 1) // batch_size
+
+    for i in range(n_batches):
+        batch = tickers[i * batch_size:(i + 1) * batch_size]
+        try:
+            d = fetch_batch(tuple(batch), days_back=days_back)
+            if d is None or d.empty:
+                debug_msgs.append(f"Batch {i+1}: yfinance boş veri döndü")
+                progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
+                continue
+
+            if isinstance(d.columns, pd.MultiIndex):
+                level0_values = d.columns.get_level_values(0).unique()
+                for t in batch:
+                    try:
+                        if t in level0_values:
+                            sub = d[t].dropna(subset=["Close"])
+                            if len(sub) > MIN_BARS:
+                                all_data[t] = prepare_indicators(sub)
+                            else:
+                                debug_msgs.append(f"{t}: yetersiz veri ({len(sub)} bar)")
+                    except (KeyError, AttributeError) as e:
+                        debug_msgs.append(f"{t}: erişim hatası — {e}")
+                        continue
+            else:
+                if "Close" in d.columns:
+                    sub = d.dropna(subset=["Close"])
+                    if len(sub) > MIN_BARS:
+                        if len(batch) == 1:
+                            all_data[batch[0]] = prepare_indicators(sub)
+                    else:
+                        debug_msgs.append(f"Batch {i+1}: yetersiz veri ({len(sub)} bar)")
+                else:
+                    debug_msgs.append(f"Batch {i+1}: 'Close' kolonu yok")
+        except Exception as e:
+            debug_msgs.append(f"Batch {i+1} hatası: {type(e).__name__}: {str(e)[:100]}")
+            continue
+
+        progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
+
+    progress.empty()
+
+    if not all_data:
+        return None, debug_msgs
+
+    # 5 senaryo
+    scenarios = ["baseline", "ema200", "volume", "rsi", "all"]
+    all_trades = {s: [] for s in scenarios}
+
+    progress2 = st.progress(0.0, text="Senaryolar işleniyor...")
+    total = len(all_data)
+    for idx, (ticker, df) in enumerate(all_data.items()):
+        for s in scenarios:
+            trades = run_scenario(df, s, start_date)
+            if trades:
+                for tr in trades:
+                    tr["ticker"] = ticker.replace(".IS", "")
+                all_trades[s].extend(trades)
+        progress2.progress((idx + 1) / total, text=f"Senaryolar işleniyor... ({idx+1}/{total})")
+
+    progress2.empty()
+
+    return {
+        "all_trades": all_trades,
+        "all_data_count": len(all_data),
+        "bench_return": bench_return,
+        "debug_msgs": debug_msgs,
+    }, debug_msgs
 
 
 # ============================================================
@@ -245,12 +324,27 @@ with st.sidebar:
 
     run = st.button("▶ Backtest'i Çalıştır", type="primary", use_container_width=True)
 
+    if "bt_results" in st.session_state:
+        if st.button("🗑 Sonuçları Temizle", use_container_width=True):
+            del st.session_state["bt_results"]
+            st.rerun()
+
 
 # ============================================================
 # Ana akış
 # ============================================================
 
-if not run:
+scenarios = ["baseline", "ema200", "volume", "rsi", "all"]
+scenario_labels = {
+    "baseline": "0. Baseline",
+    "ema200": "1. + EMA200",
+    "volume": "2. + Hacim",
+    "rsi": "3. + RSI",
+    "all": "4. Hepsi",
+}
+
+# İlk açılış: hiç çalıştırılmamış ve butona basılmamışsa
+if not run and "bt_results" not in st.session_state:
     st.info("Sol menüden parametreleri seçip **▶ Backtest'i Çalıştır** butonuna bas.")
     st.markdown("""
     ### 5 Senaryo nedir?
@@ -288,140 +382,67 @@ if not run:
     st.stop()
 
 
-# --- Hisse listesi hazırla ---
-all_tickers = load_tickers()
-if not all_tickers:
-    st.error("bist_tickers.txt bulunamadı.")
-    st.stop()
-
-if universe_choice == "all":
-    tickers = all_tickers
-elif universe_choice == "top100":
-    tickers = all_tickers[:100]
-else:
-    if not custom_ticker:
-        st.error("Hisse kodu boş.")
+# Butona basıldıysa: hesaplama yap, session_state'e kaydet
+if run:
+    all_tickers = load_tickers()
+    if not all_tickers:
+        st.error("bist_tickers.txt bulunamadı.")
         st.stop()
-    t = custom_ticker if custom_ticker.endswith(".IS") else f"{custom_ticker}.IS"
-    tickers = [t]
 
-days_back = period_years * 365
-start_date = pd.Timestamp(datetime.now() - timedelta(days=days_back))
-
-st.info(f"🔄 {len(tickers)} hisse · son {period_years} yıl · 5 senaryo paralel çalışıyor...")
-
-# --- Benchmark ---
-bench = fetch_benchmark(days_back)
-if bench.empty or "Close" not in bench.columns:
-    st.warning("XU100 verisi alınamadı, alfa hesaplanmayacak.")
-    bench_return = 0
-else:
-    bench_active = bench[bench.index >= start_date]
-    if len(bench_active) >= 2:
-        bench_return = (bench_active["Close"].iloc[-1] / bench_active["Close"].iloc[0] - 1) * 100
+    if universe_choice == "all":
+        tickers = all_tickers
+    elif universe_choice == "top100":
+        tickers = all_tickers[:100]
     else:
-        bench_return = 0
+        if not custom_ticker:
+            st.error("Hisse kodu boş.")
+            st.stop()
+        t = custom_ticker if custom_ticker.endswith(".IS") else f"{custom_ticker}.IS"
+        tickers = [t]
 
-# --- Veriyi çek ---
-all_data = {}
-progress = st.progress(0.0, text="Veri indiriliyor...")
-batch_size = 50
-n_batches = (len(tickers) + batch_size - 1) // batch_size
+    days_back = period_years * 365
+    start_date = pd.Timestamp(datetime.now() - timedelta(days=days_back))
 
-MIN_BARS = 210  # EMA200 + birkaç bar tampon
+    st.info(f"🔄 {len(tickers)} hisse · son {period_years} yıl · 5 senaryo paralel çalışıyor...")
 
-debug_msgs = []  # kullanıcıya gösterilecek tanı mesajları
+    result, debug_msgs = run_full_backtest(tickers, days_back, start_date)
 
-for i in range(n_batches):
-    batch = tickers[i * batch_size:(i + 1) * batch_size]
-    try:
-        d = fetch_batch(tuple(batch), days_back=days_back)
+    if result is None:
+        st.error("Hiç hisse verisi indirilemedi.")
+        if debug_msgs:
+            with st.expander("🔍 Tanı bilgisi"):
+                for m in debug_msgs[:20]:
+                    st.text(m)
+        st.stop()
 
-        if d is None or d.empty:
-            debug_msgs.append(f"Batch {i+1}: yfinance boş veri döndü")
-            progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
-            continue
+    result["period_years"] = period_years
+    result["universe_label"] = {
+        "all": f"Tüm BIST ({len(tickers)} hisse)",
+        "top100": "İlk 100 hisse",
+        "custom": f"Tek hisse: {tickers[0].replace('.IS','')}",
+    }[universe_choice]
+    result["run_time"] = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-        # yfinance hem MultiIndex hem single-level döndürebilir
-        # Tek hisse + group_by="ticker" kombinasyonu için her iki ihtimali de handle et
-        if isinstance(d.columns, pd.MultiIndex):
-            # Çoklu hisse veya MultiIndex döndüren tek hisse
-            level0_values = d.columns.get_level_values(0).unique()
-            for t in batch:
-                try:
-                    if t in level0_values:
-                        sub = d[t].dropna(subset=["Close"])
-                        if len(sub) > MIN_BARS:
-                            all_data[t] = prepare_indicators(sub)
-                        else:
-                            debug_msgs.append(f"{t}: yetersiz veri ({len(sub)} bar)")
-                except (KeyError, AttributeError) as e:
-                    debug_msgs.append(f"{t}: erişim hatası — {e}")
-                    continue
-        else:
-            # Single-level (genelde tek hisse)
-            if "Close" in d.columns:
-                sub = d.dropna(subset=["Close"])
-                if len(sub) > MIN_BARS:
-                    # Batch'te kaç hisse varsa hepsine aynı veri uygulanmamalı
-                    # tek hisseyse direkt at, çokluysa atla (bu durum olmamalı)
-                    if len(batch) == 1:
-                        all_data[batch[0]] = prepare_indicators(sub)
-                    else:
-                        debug_msgs.append(f"Batch {i+1}: çoklu hisse beklenirken single-level veri geldi")
-                else:
-                    debug_msgs.append(f"Batch {i+1}: yetersiz veri ({len(sub)} bar)")
-            else:
-                debug_msgs.append(f"Batch {i+1}: 'Close' kolonu yok. Kolonlar: {list(d.columns)[:5]}")
+    st.session_state["bt_results"] = result
+    st.success(f"✅ {result['all_data_count']} hisse için backtest tamamlandı.")
 
-    except Exception as e:
-        debug_msgs.append(f"Batch {i+1} hatası: {type(e).__name__}: {str(e)[:100]}")
-        continue
 
-    progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
+# === Session_state'ten oku ve görüntüle ===
+r = st.session_state["bt_results"]
+all_trades = r["all_trades"]
+bench_return = r["bench_return"]
+debug_msgs = r.get("debug_msgs", [])
 
-progress.empty()
+st.caption(
+    f"📌 Son çalıştırma: {r['run_time']} · {r['universe_label']} · {r['period_years']} yıl · "
+    f"{r['all_data_count']} hisse işlendi"
+)
 
-if not all_data:
-    st.error("Hiç hisse verisi indirilemedi.")
-    if debug_msgs:
-        with st.expander("🔍 Tanı bilgisi (geliştirici için)"):
-            for m in debug_msgs[:20]:
-                st.text(m)
-    st.stop()
-elif debug_msgs and len(debug_msgs) < len(tickers):
-    with st.expander(f"⚠ {len(debug_msgs)} hissede sorun çıktı (devam ediliyor)"):
+if debug_msgs and len(debug_msgs) < r["all_data_count"] * 0.5:
+    with st.expander(f"⚠ {len(debug_msgs)} hissede sorun olmuştu"):
         for m in debug_msgs[:20]:
             st.text(m)
 
-st.success(f"✅ {len(all_data)} hisse için veri hazır. Senaryolar çalıştırılıyor...")
-
-# --- 5 senaryoyu çalıştır ---
-scenarios = ["baseline", "ema200", "volume", "rsi", "all"]
-scenario_labels = {
-    "baseline": "0. Baseline",
-    "ema200": "1. + EMA200",
-    "volume": "2. + Hacim",
-    "rsi": "3. + RSI",
-    "all": "4. Hepsi",
-}
-
-all_trades = {s: [] for s in scenarios}  # senaryo → tüm hisselerin tüm trade'leri
-trades_by_ticker = {s: {} for s in scenarios}  # senaryo → {sembol: trades}
-
-progress2 = st.progress(0.0, text="Senaryolar işleniyor...")
-total = len(all_data)
-for idx, (ticker, df) in enumerate(all_data.items()):
-    for s in scenarios:
-        trades = run_scenario(df, s, start_date)
-        if trades:
-            for tr in trades:
-                tr["ticker"] = ticker.replace(".IS", "")
-            all_trades[s].extend(trades)
-            trades_by_ticker[s][ticker.replace(".IS", "")] = trades
-    progress2.progress((idx + 1) / total, text=f"Senaryolar işleniyor... ({idx+1}/{total})")
-
-progress2.empty()
 
 # --- Özet tablo ---
 st.divider()
@@ -446,7 +467,6 @@ summary_df = pd.DataFrame(summary_rows)
 
 
 def highlight_best(s, higher_better=True):
-    """Bir kolonda en iyi değeri yeşil yap."""
     if s.dtype == object:
         return [""] * len(s)
     valid = s.dropna()
@@ -474,6 +494,7 @@ st.dataframe(styled_summary, use_container_width=True, hide_index=True)
 
 st.caption(f"📈 BIST-100 (benchmark) aynı dönemde: **{bench_return:+.2f}%** · Yeşil = o kolonda en iyi senaryo")
 
+
 # --- Yorum ---
 st.divider()
 st.subheader("🧠 Hızlı Yorum")
@@ -484,32 +505,48 @@ all_filters = summarize(all_trades["all"], bench_return)
 comments = []
 if baseline["n_trades"] > 0 and all_filters["n_trades"] > 0:
     if all_filters["expectancy"] > baseline["expectancy"]:
-        comments.append(f"✅ **Hepsi** senaryosu baseline'a göre daha iyi beklenti veriyor: {all_filters['expectancy']:+.2f}% vs {baseline['expectancy']:+.2f}%")
+        comments.append(
+            f"✅ **Hepsi** senaryosu baseline'a göre daha iyi beklenti veriyor: "
+            f"{all_filters['expectancy']:+.2f}% vs {baseline['expectancy']:+.2f}%"
+        )
     else:
-        comments.append(f"⚠ **Hepsi** senaryosu baseline'ı geçemedi: {all_filters['expectancy']:+.2f}% vs {baseline['expectancy']:+.2f}%")
+        comments.append(
+            f"⚠ **Hepsi** senaryosu baseline'ı geçemedi: "
+            f"{all_filters['expectancy']:+.2f}% vs {baseline['expectancy']:+.2f}%"
+        )
 
     if all_filters["n_trades"] < baseline["n_trades"] * 0.2:
-        comments.append(f"⚠ Hepsi senaryosu trade sayısını çok daralttı ({all_filters['n_trades']} vs {baseline['n_trades']}) — istatistik güveni düşük olabilir")
+        comments.append(
+            f"⚠ Hepsi senaryosu trade sayısını çok daralttı "
+            f"({all_filters['n_trades']} vs {baseline['n_trades']}) — istatistik güveni düşük olabilir"
+        )
 
-# En iyi tek filtre
 single_filters = ["ema200", "volume", "rsi"]
-best_single = max(single_filters, key=lambda s: summarize(all_trades[s], bench_return)["expectancy"] if all_trades[s] else -999)
+best_single = max(
+    single_filters,
+    key=lambda s: summarize(all_trades[s], bench_return)["expectancy"] if all_trades[s] else -999
+)
 best_single_summary = summarize(all_trades[best_single], bench_return)
 if best_single_summary["n_trades"] > 0:
-    comments.append(f"🏆 En iyi tek filtre: **{scenario_labels[best_single]}** (beklenti {best_single_summary['expectancy']:+.2f}%, {best_single_summary['n_trades']} trade)")
+    comments.append(
+        f"🏆 En iyi tek filtre: **{scenario_labels[best_single]}** "
+        f"(beklenti {best_single_summary['expectancy']:+.2f}%, {best_single_summary['n_trades']} trade)"
+    )
 
 for c in comments:
     st.markdown(c)
 
+
 # --- Detay: her senaryonun trade listesi ---
 st.divider()
-st.subheader("📋 Trade Detayları (senaryo seç)")
+st.subheader("📋 Trade Detayları")
 
 selected = st.selectbox(
     "Hangi senaryonun trade'lerini görmek istersin?",
     options=scenarios,
     format_func=lambda s: scenario_labels[s],
-    index=4
+    index=4,
+    key="scenario_selector"  # session'da kalıcı
 )
 
 if all_trades[selected]:
@@ -541,7 +578,6 @@ if all_trades[selected]:
     )
     st.dataframe(styled_detail, use_container_width=True, hide_index=True, height=600)
 
-    # CSV indir
     csv = detail_df.to_csv(index=False).encode("utf-8")
     st.download_button(
         f"⬇ {scenario_labels[selected]} trade'lerini CSV indir",
