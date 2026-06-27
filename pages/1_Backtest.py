@@ -328,34 +328,71 @@ progress = st.progress(0.0, text="Veri indiriliyor...")
 batch_size = 50
 n_batches = (len(tickers) + batch_size - 1) // batch_size
 
+MIN_BARS = 210  # EMA200 + birkaç bar tampon
+
+debug_msgs = []  # kullanıcıya gösterilecek tanı mesajları
+
 for i in range(n_batches):
     batch = tickers[i * batch_size:(i + 1) * batch_size]
     try:
         d = fetch_batch(tuple(batch), days_back=days_back)
-        if len(batch) == 1:
-            t = batch[0]
-            if not d.empty and "Close" in d.columns:
-                sub = d.dropna(subset=["Close"])
-                if len(sub) > 220:  # EMA200 için yeterli veri
-                    all_data[t] = prepare_indicators(sub)
-        else:
+
+        if d is None or d.empty:
+            debug_msgs.append(f"Batch {i+1}: yfinance boş veri döndü")
+            progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
+            continue
+
+        # yfinance hem MultiIndex hem single-level döndürebilir
+        # Tek hisse + group_by="ticker" kombinasyonu için her iki ihtimali de handle et
+        if isinstance(d.columns, pd.MultiIndex):
+            # Çoklu hisse veya MultiIndex döndüren tek hisse
+            level0_values = d.columns.get_level_values(0).unique()
             for t in batch:
                 try:
-                    if t in d.columns.get_level_values(0):
+                    if t in level0_values:
                         sub = d[t].dropna(subset=["Close"])
-                        if len(sub) > 220:
+                        if len(sub) > MIN_BARS:
                             all_data[t] = prepare_indicators(sub)
-                except (KeyError, AttributeError):
+                        else:
+                            debug_msgs.append(f"{t}: yetersiz veri ({len(sub)} bar)")
+                except (KeyError, AttributeError) as e:
+                    debug_msgs.append(f"{t}: erişim hatası — {e}")
                     continue
-    except Exception:
+        else:
+            # Single-level (genelde tek hisse)
+            if "Close" in d.columns:
+                sub = d.dropna(subset=["Close"])
+                if len(sub) > MIN_BARS:
+                    # Batch'te kaç hisse varsa hepsine aynı veri uygulanmamalı
+                    # tek hisseyse direkt at, çokluysa atla (bu durum olmamalı)
+                    if len(batch) == 1:
+                        all_data[batch[0]] = prepare_indicators(sub)
+                    else:
+                        debug_msgs.append(f"Batch {i+1}: çoklu hisse beklenirken single-level veri geldi")
+                else:
+                    debug_msgs.append(f"Batch {i+1}: yetersiz veri ({len(sub)} bar)")
+            else:
+                debug_msgs.append(f"Batch {i+1}: 'Close' kolonu yok. Kolonlar: {list(d.columns)[:5]}")
+
+    except Exception as e:
+        debug_msgs.append(f"Batch {i+1} hatası: {type(e).__name__}: {str(e)[:100]}")
         continue
+
     progress.progress((i + 1) / n_batches, text=f"Veri indiriliyor... ({i+1}/{n_batches})")
 
 progress.empty()
 
 if not all_data:
     st.error("Hiç hisse verisi indirilemedi.")
+    if debug_msgs:
+        with st.expander("🔍 Tanı bilgisi (geliştirici için)"):
+            for m in debug_msgs[:20]:
+                st.text(m)
     st.stop()
+elif debug_msgs and len(debug_msgs) < len(tickers):
+    with st.expander(f"⚠ {len(debug_msgs)} hissede sorun çıktı (devam ediliyor)"):
+        for m in debug_msgs[:20]:
+            st.text(m)
 
 st.success(f"✅ {len(all_data)} hisse için veri hazır. Senaryolar çalıştırılıyor...")
 
