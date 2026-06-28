@@ -1,0 +1,116 @@
+# BIST Çekirdek — Yıllardır BIST-100'de bulunan istikrarlı kurumsal hisseler
+# Sektör bazında gruplanmıştır. Yorumları silmek gerekmez, kod # ile başlayan satırları atlar.
+# Survivorship bias'ı azaltmak için endeksten girip çıkan oynak hisseler dahil edilmemiştir.
+
+# === Bankalar ===
+AKBNK.IS
+GARAN.IS
+ISCTR.IS
+YKBNK.IS
+VAKBN.IS
+HALKB.IS
+ALBRK.IS
+ICBCT.IS
+QNBFB.IS
+SKBNK.IS
+
+# === Holdingler ===
+KCHOL.IS
+SAHOL.IS
+DOHOL.IS
+GLYHO.IS
+AGHOL.IS
+ALARK.IS
+ENKAI.IS
+KOZAA.IS
+
+# === Sigorta ===
+AKGRT.IS
+ANSGR.IS
+ANHYT.IS
+TURSG.IS
+
+# === Sanayi devleri ===
+TUPRS.IS
+EREGL.IS
+KRDMD.IS
+ISDMR.IS
+KORDS.IS
+BRSAN.IS
+SISE.IS
+PETKM.IS
+AKSA.IS
+SASA.IS
+
+# === Gıda / Perakende ===
+BIMAS.IS
+MGROS.IS
+SOKM.IS
+ULKER.IS
+TATGD.IS
+PNSUT.IS
+CCOLA.IS
+AEFES.IS
+KENT.IS
+TUKAS.IS
+
+# === Otomotiv / Beyaz Eşya ===
+TOASO.IS
+FROTO.IS
+ARCLK.IS
+VESTL.IS
+OTKAR.IS
+ASUZU.IS
+TTRAK.IS
+DOAS.IS
+
+# === Çimento ===
+AKCNS.IS
+OYAKC.IS
+KONYA.IS
+CIMSA.IS
+NUHCM.IS
+GOLTS.IS
+
+# === Telekomünikasyon ===
+TCELL.IS
+TTKOM.IS
+TKFEN.IS
+
+# === Ulaşım / Havayolu ===
+THYAO.IS
+PGSUS.IS
+TAVHL.IS
+CLEBI.IS
+
+# === Enerji ===
+ZOREN.IS
+ENJSA.IS
+AYGAZ.IS
+AKSEN.IS
+AKENR.IS
+GWIND.IS
+
+# === GYO ===
+EKGYO.IS
+ISGYO.IS
+AKFGY.IS
+TRGYO.IS
+OZKGY.IS
+
+# === İlaç / Sağlık ===
+SELEC.IS
+DEVA.IS
+ECILC.IS
+LKMNH.IS
+MPARK.IS
+
+# === Diğer Kurumsal ===
+ASELS.IS
+KARSN.IS
+ALKIM.IS
+GUBRF.IS
+HEKTS.IS
+KCAER.IS
+SARKY.IS
+ANGEN.IS
