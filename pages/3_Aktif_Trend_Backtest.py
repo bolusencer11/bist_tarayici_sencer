@@ -1,16 +1,14 @@
 """
-Aktif Trend Backtest v2 — Saf Strateji Testi
+Aktif Trend Backtest v2.1 — Saf Strateji + Hacim Filtresi
 
-Slot/portföy mantığı KALDIRILDI. Skor sisteminin kendisi test ediliyor.
+YENİ:
+- Sidebar'da "Hacim Filtresi" checkbox: crossover günü hacim ≥ 1.5× 20g ort
+- Tablo kolonlarında tooltip (hover ile açıklama)
 
 Kurallar:
-- Her gün her hissede: "Yeni Sinyal" + skor ≥ eşik → al (eğer açık değilse)
-- Aynı hissede aynı anda 1 pozisyon (re-entry yok, çıkana kadar bekle)
-- Çıkış: kategori "Trend Sonu" olunca sat
-- Sermaye limiti YOK — strateji "ham" performansı görelim
-
-Birincil metrik: BEKLENTİ % (per trade ortalama)
-İkincil metrikler: kazanma oranı, win/loss asimetri, hipotetik eşit-ağırlık portföy
+- Slot/portföy limiti yok
+- Aynı hissede aynı anda 1 pozisyon
+- Çıkış: kategori "Trend Sonu"
 """
 import streamlit as st
 import yfinance as yf
@@ -19,9 +17,9 @@ import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 
-st.set_page_config(page_title="Aktif Trend Backtest v2", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Aktif Trend Backtest v2.1", page_icon="🎯", layout="wide")
 st.title("🎯 Aktif Trend Backtest — Saf Strateji Testi")
-st.caption("Slot/portföy limiti yok · Skor sisteminin ham gücünü ölç")
+st.caption("Slot yok · Hacim filtresi opsiyonel · Tablo başlıklarında 🛈 ile açıklama")
 
 
 # ============================================================
@@ -30,6 +28,15 @@ st.caption("Slot/portföy limiti yok · Skor sisteminin ham gücünü ölç")
 
 def load_tickers():
     p = Path(__file__).parent.parent / "bist_tickers.txt"
+    if p.exists():
+        with open(p, encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    return []
+
+
+def load_core_tickers():
+    """BIST Çekirdek listesi — yıllardır endekste istikrarlı kurumsal hisseler."""
+    p = Path(__file__).parent.parent / "bist_core.txt"
     if p.exists():
         with open(p, encoding="utf-8") as f:
             return [line.strip() for line in f if line.strip() and not line.startswith("#")]
@@ -79,7 +86,6 @@ def compute_macd(close, fast=12, slow=26, signal=9):
 
 
 def prepare_indicators(df):
-    """Her satır için kategori + skor (vectorize, lookahead bias yok)."""
     df = df.copy()
     df["EMA10"] = df["Close"].ewm(span=10, adjust=False).mean()
     df["EMA30"] = df["Close"].ewm(span=30, adjust=False).mean()
@@ -94,14 +100,11 @@ def prepare_indicators(df):
 
     n = len(df)
     pos = pd.Series(np.arange(n), index=df.index)
-
     cross_up_pos = pos.where(df["cross_up"]).ffill()
     df["days_since_cross_up"] = (pos - cross_up_pos).astype("float")
-
     cross_down_pos = pos.where(df["cross_down"]).ffill()
     df["days_since_cross_down"] = (pos - cross_down_pos).astype("float")
 
-    # Kategori (vectorize)
     cat = pd.Series("yok", index=df.index)
     above_mask = df["above"].fillna(False)
     d_up = df["days_since_cross_up"]
@@ -113,10 +116,8 @@ def prepare_indicators(df):
     cat[~above_mask & (d_down <= 5)] = "son"
     df["category"] = cat
 
-    # Skor (Aktif Trendler ile birebir)
     macd_above = df["MACD"] > df["MACD_signal"]
     macd_hist_growing = df["MACD_hist"] > df["MACD_hist"].shift(1)
-
     momentum = pd.Series(0.0, index=df.index)
     momentum[macd_above & macd_hist_growing] = 33
     momentum[macd_above & ~macd_hist_growing] = 20
@@ -138,23 +139,25 @@ def prepare_indicators(df):
     df["score"] = momentum + health + volume
     df["vol_ratio"] = vol_ratio
 
+    # YENİ: Hacim teyit filtresi (crossover günü hacim ≥ 1.5× 20g ortalama)
+    df["vol_confirm"] = (df["Volume"] >= 1.5 * df["vol_ma20"]) & (df["vol_ma20"] > 0)
+
     return df
 
 
 # ============================================================
-# Saf Strateji Simülasyonu (slot yok)
+# Saf Strateji Simülasyonu
 # ============================================================
 
-def simulate_pure(prepared_data, threshold, trade_dates):
+def simulate_pure(prepared_data, threshold, trade_dates, use_volume_filter=False):
     """
-    Slot/sermaye limiti olmadan saf strateji.
-    Her sinyal alınır (aynı hissede tek pozisyon kuralı dışında).
+    use_volume_filter: True ise, crossover günü hacim ≥ 1.5× 20g ortalama olmalı
     """
-    positions = {}  # {ticker: {entry_date, entry_price, entry_score}}
+    positions = {}
     closed_trades = []
 
     for current_date in trade_dates:
-        # === 1. Çıkış kontrolü (açık pozisyonlar) ===
+        # Çıkış kontrolü
         to_close = []
         for ticker, pos in positions.items():
             df = prepared_data.get(ticker)
@@ -179,21 +182,27 @@ def simulate_pure(prepared_data, threshold, trade_dates):
             })
             del positions[ticker]
 
-        # === 2. Yeni sinyal: skoru ≥ eşik olan tüm "yeni" sinyaller ===
+        # Yeni sinyal
         for ticker, df in prepared_data.items():
             if ticker in positions:
-                continue  # zaten açık, re-entry yok
+                continue
             if current_date not in df.index:
                 continue
             row = df.loc[current_date]
-            if row["category"] == "yeni" and row["score"] >= threshold:
-                positions[ticker] = {
-                    "entry_date": current_date,
-                    "entry_price": float(row["Close"]),
-                    "entry_score": float(row["score"]),
-                }
+            if row["category"] != "yeni":
+                continue
+            if row["score"] < threshold:
+                continue
+            # Hacim filtresi
+            if use_volume_filter and not bool(row["vol_confirm"]):
+                continue
+            positions[ticker] = {
+                "entry_date": current_date,
+                "entry_price": float(row["Close"]),
+                "entry_score": float(row["score"]),
+            }
 
-    # Simülasyon sonu: açık kalanları son gün fiyatıyla "açık" olarak kapat
+    # Sonunda açık kalanları kapat
     last_date = trade_dates[-1]
     for ticker, pos in positions.items():
         df = prepared_data.get(ticker)
@@ -209,30 +218,22 @@ def simulate_pure(prepared_data, threshold, trade_dates):
                 "pnl_pct": pnl_pct,
                 "days": (last_date - pos["entry_date"]).days,
                 "entry_score": pos["entry_score"],
-                "still_open": True,
             })
 
     return closed_trades
 
 
 def compute_equal_weight_equity(trades, prepared_data, trade_dates):
-    """
-    Hipotetik eşit-ağırlık portföy: her gün açık olan tüm trade'lerin
-    günlük getirilerinin ORTALAMASI = portföy günlük getirisi. Compound.
-    """
     if not trades:
         return pd.Series(100.0, index=trade_dates)
 
-    # Her trade için günlük getiri serisi oluştur
     daily_returns = []
     for t in trades:
         ticker = t["ticker"]
-        # ticker'ı .IS ile aramamız lazım
         ticker_key = ticker if ticker.endswith(".IS") else f"{ticker}.IS"
         df = prepared_data.get(ticker_key)
         if df is None:
             continue
-
         entry = t["entry_date"]
         exit = t["exit_date"]
         mask = (df.index >= entry) & (df.index <= exit)
@@ -245,31 +246,19 @@ def compute_equal_weight_equity(trades, prepared_data, trade_dates):
     if not daily_returns:
         return pd.Series(100.0, index=trade_dates)
 
-    # Her trade'in günlük getirisini bir matrise yerleştir
     returns_df = pd.concat(daily_returns, axis=1)
     returns_df = returns_df.reindex(trade_dates)
-
-    # Her gün için: o gün açık olan trade'lerin günlük getirisi ortalaması
     portfolio_daily = returns_df.mean(axis=1, skipna=True).fillna(0)
     equity = (1 + portfolio_daily).cumprod() * 100
-
     return equity
 
 
 def summarize(trades, eq_curve_final, bench_return_pct):
     if not trades:
         return {
-            "n_trades": 0,
-            "win_rate": np.nan,
-            "avg_win": np.nan,
-            "avg_loss": np.nan,
-            "expectancy": np.nan,
-            "best": np.nan,
-            "worst": np.nan,
-            "avg_days": np.nan,
-            "portfolio_return": 0.0,
-            "alpha": -bench_return_pct,
-            "win_loss_ratio": np.nan,
+            "n_trades": 0, "win_rate": np.nan, "avg_win": np.nan, "avg_loss": np.nan,
+            "expectancy": np.nan, "best": np.nan, "worst": np.nan, "avg_days": np.nan,
+            "portfolio_return": 0.0, "alpha": -bench_return_pct, "win_loss_ratio": np.nan,
         }
     pnls = np.array([t["pnl_pct"] for t in trades])
     wins = pnls[pnls > 0]
@@ -286,10 +275,39 @@ def summarize(trades, eq_curve_final, bench_return_pct):
         "best": pnls.max(),
         "worst": pnls.min(),
         "avg_days": np.mean([t["days"] for t in trades]),
-        "portfolio_return": eq_curve_final - 100,  # 100 başlangıçtan ne kadar arttı
+        "portfolio_return": eq_curve_final - 100,
         "alpha": (eq_curve_final - 100) - bench_return_pct,
         "win_loss_ratio": win_loss_ratio,
     }
+
+
+# ============================================================
+# Tablo kolon tooltipleri
+# ============================================================
+
+COLUMN_TOOLTIPS = {
+    "Eşik": "Minimum skor eşiği. Yalnızca bu eşik üstündeki 'Yeni Sinyal' hisseleri alındı.",
+    "Trade": "Toplam yapılan alım-satım sayısı. Yüksek = istatistiksel güven yüksek (en az 20-30 tercih edilir).",
+    "Kazanma %": "Trade'lerin yüzde kaçı kârla kapandı. Trend takip sistemlerinde %35-50 normaldir (büyük kazançlar küçük kayıpları telafi eder).",
+    "Ort. Kazanç %": "Sadece KAZANAN trade'lerin ortalama getirisi. Yüksek = kazançlarda 'long tail' var.",
+    "Ort. Kayıp %": "Sadece KAYBEDEN trade'lerin ortalama kaybı (negatif). Küçük (mutlak değerce) = stop-loss disiplini iyi.",
+    "K/Z Oranı": "Ortalama Kazanç / Ortalama Kayıp (mutlak değer). 2.0+ ideal — bir kazanç iki kaybı eşitler.",
+    "Beklenti %": "Trade başına ortalama getiri. EN ÖNEMLİ METRİK — komisyondan (~%0.4) büyük olmalı, yoksa net kayıp.",
+    "En İyi %": "Tek bir trade'de yaşanan en yüksek kazanç. Outlier göstergesi — sistem 1-2 mucize trade'e mi bağlı?",
+    "En Kötü %": "Tek bir trade'de yaşanan en kötü kayıp. Risk göstergesi — hangi büyüklükte zarara katlanmalısın?",
+    "Ort. Gün": "Pozisyonların ortalama tutma süresi (giriş-çıkış arası takvim günü).",
+    "Portföy %": "Hipotetik eşit-ağırlık portföyün toplam getirisi: her gün açık olan tüm trade'lere eşit pay verildiği varsayılır.",
+    "Alfa %": "Portföy % − BIST-100 %. POZİTİF = strateji piyasayı yendi (asıl başarı kriteri).",
+}
+
+
+def make_column_config(df, tooltips=COLUMN_TOOLTIPS):
+    """Streamlit column_config'i kolon başlıklarına tooltip eklemek için."""
+    config = {}
+    for col in df.columns:
+        if col in tooltips:
+            config[col] = st.column_config.Column(col, help=tooltips[col])
+    return config
 
 
 # ============================================================
@@ -307,20 +325,30 @@ with st.sidebar:
 
     universe_choice = st.radio(
         "Hisse evreni",
-        options=["all", "top100"],
-        index=0,
-        format_func=lambda x: "Tüm BIST (~500 hisse)" if x == "all" else "İlk 100 hisse"
+        options=["all", "core", "top100"],
+        index=1,  # BIST Çekirdek default — adil benchmark için
+        format_func=lambda x: {
+            "all": "Tüm BIST (~500 hisse)",
+            "core": "🎯 BIST Çekirdek (~87, kurumsal)",
+            "top100": "İlk 100 hisse (alfabetik)"
+        }[x]
+    )
+
+    st.divider()
+    st.subheader("🔬 Ek Filtreler")
+    use_volume = st.checkbox(
+        "🔊 Hacim Teyidi",
+        value=False,
+        help="Crossover günü hacim ≥ 1.5 × 20-günlük ortalama. Backtest sayfasında en güçlü filtre çıkmıştı."
     )
 
     st.divider()
     st.caption(
-        "**Test mantığı (v2):**\n\n"
-        "- Skoru ≥ eşik olan HER yeni sinyal alınır (slot limiti yok)\n"
+        "**Sabit kurallar:**\n\n"
         "- Aynı hissede aynı anda 1 pozisyon\n"
-        "- 'Trend Sonu' kategorisinde sat\n"
-        "- Eşikler: **70 / 80 / 90** karşılaştırmalı\n\n"
-        "**Birincil metrik:** Beklenti % (trade başına ortalama)\n\n"
-        "**Hipotetik portföy:** Her gün açık trade'lerin eşit-ağırlık ortalaması (BIST-100 ile kıyas için)"
+        "- Slot/sermaye limiti yok\n"
+        "- Çıkış: 'Trend Sonu' kategorisi\n"
+        "- 3 eşik (70/80/90) karşılaştırmalı"
     )
 
     run = st.button("▶ Backtest'i Çalıştır", type="primary", use_container_width=True)
@@ -338,31 +366,22 @@ with st.sidebar:
 if not run and "atb2_results" not in st.session_state:
     st.info("Sol menüden parametreleri seçip **▶ Backtest'i Çalıştır** butonuna bas.")
     st.markdown("""
-    ### v1'den ne değişti?
+    ### Bu sayfa ne yapıyor?
 
-    v1'de **slot mantığı testi gizlemişti**: max 10 açık pozisyon limitine takıldığı için 11.000+ sinyal atlandı, 3 eşik aynı sonuç verdi.
+    Aktif Trendler skorunun gerçek değerini ölçer:
+    - **Slot/portföy limiti yok** — her sinyali al
+    - **Aynı hissede tek pozisyon** kuralı var (re-entry yok)
+    - **3 eşik (70/80/90)** yan yana karşılaştırılır
 
-    v2'de **slot kalktı**. Şimdi her sinyal alınıyor, sadece **aynı hissede tek pozisyon** kuralı var. Bu, **skor sisteminin ham kalitesini** ölçer.
+    ### Hacim Teyidi ne yapar?
 
-    ### Hangi soruya cevap arıyoruz?
+    Aktif Trendler skoru zaten hacim **oranını** (5g/20g) içeriyor.
+    Hacim teyidi farklı: **crossover günü hacim**, 20-günlük ortalamanın **1.5 katı üstünde** olmalı.
 
-    > "Aktif Trendler skoru gerçekten **iyi hisseleri seçebiliyor mu**?"
+    Bu, "kıyısından sıyrılan" sahte crossover'ları eler. Backtest sayfasında en güçlü filtre çıkmıştı (TUPRS'ta alfa +%104).
 
-    **Birincil cevap: Beklenti %** — trade başına ortalama getiri.
-    - Pozitif ve **büyük** ise → skor iyiyi seçiyor
-    - Pozitif ama küçük (≤ %1) → marjinal, komisyonu karşılamaz
-    - Negatif → skor sistemi gürültü
-
-    ### Karşılaştırma mantığı
-
-    | Eşik | Beklenen |
-    |------|---|
-    | **≥ 70** | Çok trade, orta kalite |
-    | **≥ 80** | Daha az ama daha kaliteli |
-    | **≥ 90** | En az trade, en yüksek kalite — beklenti en yüksek olmalı |
-
-    **Eğer skor sistemi anlamlıysa**, eşik arttıkça beklenti yükselmeli (sayı düşse bile).
-    **Eğer skor anlamsızsa**, üç eşik benzer beklenti verir — yüksek skor = "iyi hisse" değil.
+    ### Tablo kolonları
+    Her kolon başlığında **🛈 işareti** vardır — üzerine geldiğinde açıklama gelir.
     """)
     st.stop()
 
@@ -374,14 +393,22 @@ if run:
         st.error("bist_tickers.txt bulunamadı.")
         st.stop()
 
-    tickers = all_tickers if universe_choice == "all" else all_tickers[:100]
+    if universe_choice == "all":
+        tickers = all_tickers
+    elif universe_choice == "core":
+        tickers = load_core_tickers()
+        if not tickers:
+            st.error("bist_core.txt bulunamadı. Lütfen dosyayı repo köküne ekleyin.")
+            st.stop()
+    else:  # top100
+        tickers = all_tickers[:100]
     days_back = period_months * 30
 
-    st.info(f"📥 {len(tickers)} hisse · son {period_months} ay hazırlanıyor...")
+    filter_label = " + Hacim Teyidi" if use_volume else ""
+    st.info(f"📥 {len(tickers)} hisse · son {period_months} ay{filter_label} hazırlanıyor...")
 
     bench = fetch_benchmark(days_back)
 
-    # Veri çek
     all_data = {}
     progress = st.progress(0.0, text="Veri indiriliyor...")
     batch_size = 50
@@ -417,7 +444,6 @@ if run:
         st.error("Veri indirilemedi.")
         st.stop()
 
-    # İndikatörler
     st.info(f"📊 {len(all_data)} hisse için indikatör hesaplanıyor...")
     progress2 = st.progress(0.0, text="İndikatörler...")
     prepared = {}
@@ -430,14 +456,12 @@ if run:
         progress2.progress((idx + 1) / total, text=f"İndikatörler... ({idx+1}/{total})")
     progress2.empty()
 
-    # Simülasyon tarihleri
     if bench.empty:
         st.error("Benchmark indirilemedi.")
         st.stop()
 
     sim_start = pd.Timestamp(datetime.now() - timedelta(days=period_months * 30))
     trade_dates = bench.index[bench.index >= sim_start]
-
     if len(trade_dates) < 10:
         st.error(f"Yetersiz işlem günü ({len(trade_dates)})")
         st.stop()
@@ -446,19 +470,16 @@ if run:
     bench_return = (bench_in_period["Close"].iloc[-1] / bench_in_period["Close"].iloc[0] - 1) * 100
     bench_norm = bench_in_period["Close"] / bench_in_period["Close"].iloc[0] * 100
 
-    # 3 eşik için simülasyon
-    st.info(f"🎬 3 eşik için simülasyon ({len(trade_dates)} işlem günü)...")
+    st.info(f"🎬 3 eşik için simülasyon{filter_label} ({len(trade_dates)} işlem günü)...")
     progress3 = st.progress(0.0, text="Simülasyon...")
     thresholds = [70, 80, 90]
     results = {}
 
     for idx, th in enumerate(thresholds):
-        trades = simulate_pure(prepared, threshold=th, trade_dates=trade_dates)
+        trades = simulate_pure(prepared, threshold=th, trade_dates=trade_dates,
+                              use_volume_filter=use_volume)
         equity = compute_equal_weight_equity(trades, prepared, trade_dates)
-        results[th] = {
-            "trades": trades,
-            "equity": equity,
-        }
+        results[th] = {"trades": trades, "equity": equity}
         progress3.progress((idx + 1) / len(thresholds), text=f"Eşik {th} bitti")
     progress3.empty()
 
@@ -467,9 +488,14 @@ if run:
         "bench_return": bench_return,
         "bench_curve": bench_norm,
         "period_months": period_months,
-        "universe_label": f"Tüm BIST ({len(prepared)} hisse)" if universe_choice == "all" else f"İlk {len(prepared)} hisse",
+        "universe_label": {
+            "all": f"Tüm BIST ({len(prepared)} hisse)",
+            "core": f"🎯 BIST Çekirdek ({len(prepared)} hisse, kurumsal)",
+            "top100": f"İlk 100 hisse ({len(prepared)} indirildi)"
+        }[universe_choice],
         "run_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "n_trade_days": len(trade_dates),
+        "use_volume_filter": use_volume,
     }
     st.success(f"✅ Tamamlandı. {len(prepared)} hisse, {len(trade_dates)} işlem günü.")
 
@@ -478,15 +504,18 @@ if run:
 r = st.session_state["atb2_results"]
 results = r["results"]
 bench_return = r["bench_return"]
+used_volume = r.get("use_volume_filter", False)
 
+filter_label = " + 🔊 Hacim Teyidi" if used_volume else ""
 st.caption(
     f"📌 Son çalıştırma: {r['run_time']} · {r['universe_label']} · "
-    f"{r['period_months']} ay · {r['n_trade_days']} işlem günü"
+    f"{r['period_months']} ay · {r['n_trade_days']} işlem günü{filter_label}"
 )
 
 # --- Ana tablo ---
 st.divider()
-st.subheader("📊 Eşik Karşılaştırma")
+st.subheader(f"📊 Eşik Karşılaştırma{filter_label}")
+st.caption("💡 Kolon başlıklarının üzerine gelirseniz, her metriğin ne anlama geldiğini açıklayan tooltip görünür.")
 
 summary_rows = []
 for th in [70, 80, 90]:
@@ -539,7 +568,13 @@ styled = (
         "Alfa %": "{:+.2f}",
     })
 )
-st.dataframe(styled, use_container_width=True, hide_index=True)
+
+st.dataframe(
+    styled,
+    use_container_width=True,
+    hide_index=True,
+    column_config=make_column_config(summary_df),
+)
 st.caption(f"📈 BIST-100 aynı dönemde: **{bench_return:+.2f}%** · Yeşil = o kolonda en iyi")
 
 
@@ -547,28 +582,29 @@ st.caption(f"📈 BIST-100 aynı dönemde: **{bench_return:+.2f}%** · Yeşil = 
 st.divider()
 st.subheader("🧠 Hızlı Yorum")
 
-comments = []
-
-# Eşik trend kontrolü
 exps = {th: summarize(results[th]["trades"],
                       float(results[th]["equity"].iloc[-1]) if len(results[th]["equity"]) > 0 else 100,
                       bench_return)["expectancy"] for th in [70, 80, 90]}
+alphas = {th: summarize(results[th]["trades"],
+                        float(results[th]["equity"].iloc[-1]) if len(results[th]["equity"]) > 0 else 100,
+                        bench_return)["alpha"] for th in [70, 80, 90]}
+
+comments = []
 
 if all(pd.notna(v) for v in exps.values()):
     if exps[90] > exps[80] > exps[70]:
         comments.append("✅ **Beklenti eşikle birlikte artıyor** — skor sistemi anlamlı, yüksek skor = iyi hisse")
     elif exps[70] > exps[80] > exps[90]:
-        comments.append("⚠ **Beklenti eşikle ters orantılı** — yüksek skor 'kötü' anlamına geliyor olabilir, formül ters çalışıyor olabilir")
+        comments.append("⚠ **Beklenti eşikle ters orantılı** — yüksek skor 'kötü' anlamına geliyor olabilir, formülü ters çevirmek gerekebilir")
     else:
         comments.append("⚠ Beklenti eşikle düzgün artmıyor — skor sistemi gürültülü, monoton sıralama yok")
 
-# En iyi eşik
 best_exp_th = max([70, 80, 90], key=lambda t: exps[t] if pd.notna(exps[t]) else -999)
 if pd.notna(exps[best_exp_th]):
     if exps[best_exp_th] > 5:
         comments.append(f"🏆 En yüksek beklenti: **Skor ≥ {best_exp_th}** = %{exps[best_exp_th]:+.2f} per trade — güçlü")
     elif exps[best_exp_th] > 1:
-        comments.append(f"🥉 En yüksek beklenti: **Skor ≥ {best_exp_th}** = %{exps[best_exp_th]:+.2f} per trade — marjinal")
+        comments.append(f"🥉 En yüksek beklenti: **Skor ≥ {best_exp_th}** = %{exps[best_exp_th]:+.2f} per trade — marjinal, komisyona dikkat")
     elif exps[best_exp_th] > 0:
         comments.append(f"⚠ En yüksek beklenti: **Skor ≥ {best_exp_th}** = %{exps[best_exp_th]:+.2f} per trade — komisyonu karşılamaz")
     else:
@@ -580,15 +616,18 @@ for th in [70, 80, 90]:
                   float(results[th]["equity"].iloc[-1]) if len(results[th]["equity"]) > 0 else 100,
                   bench_return)
     if s["n_trades"] < 20:
-        comments.append(f"⚠ Eşik {th}: sadece {s['n_trades']} trade — istatistik güveni düşük, daha uzun dönem öner")
+        comments.append(f"⚠ Eşik {th}: sadece {s['n_trades']} trade — istatistik güveni düşük")
 
-# Portföy
-for th in [70, 80, 90]:
-    s = summarize(results[th]["trades"],
-                  float(results[th]["equity"].iloc[-1]) if len(results[th]["equity"]) > 0 else 100,
-                  bench_return)
-    if s["alpha"] > 0 and s["n_trades"] >= 20:
-        comments.append(f"📈 Eşik {th}: hipotetik eşit-ağırlık portföy BIST-100'ü yendi (alfa {s['alpha']:+.2f}%)")
+# Alfa
+best_alpha_th = max([70, 80, 90], key=lambda t: alphas[t] if pd.notna(alphas[t]) else -999)
+if pd.notna(alphas[best_alpha_th]) and alphas[best_alpha_th] > 0:
+    comments.append(f"📈 En iyi alfa: **Skor ≥ {best_alpha_th}** = %{alphas[best_alpha_th]:+.2f} — BIST-100'ü yendi")
+elif pd.notna(alphas[best_alpha_th]):
+    comments.append(f"⚠ En iyi alfa: **Skor ≥ {best_alpha_th}** = %{alphas[best_alpha_th]:+.2f} — BIST-100 hâlâ üstte")
+
+# Hacim filtresi hatırlatma
+if not used_volume:
+    comments.append("💡 **Öneri:** Sol menüden 🔊 Hacim Teyidi'ni açıp tekrar çalıştırın — backtest sayfasında en güçlü filtre çıkmıştı.")
 
 for c in comments:
     st.markdown(c)
@@ -610,7 +649,7 @@ if "bench_curve" in r and len(r["bench_curve"]) > 0:
 if curve_data:
     chart_df = pd.DataFrame(curve_data)
     st.line_chart(chart_df)
-    st.caption("100 = başlangıç. Her gün açık olan tüm trade'lerin eşit-ağırlık ortalama getirisi. Slot/sermaye limiti yok.")
+    st.caption("100 = başlangıç. Çizgi 100 üstünde = kâr. BIST-100 çizgisinin üstünde kalmak = strateji piyasayı yenmiş.")
 
 
 # --- Trade detayı ---
@@ -647,6 +686,17 @@ if trades:
         else:
             return "background-color: #ef9a9a; color: #b71c1c"
 
+    detail_tooltips = {
+        "Sembol": "Hissenin BIST kodu (.IS suffix olmadan).",
+        "Giriş": "Pozisyonun açıldığı tarih.",
+        "Giriş ₺": "Pozisyon açılırken hissenin kapanış fiyatı.",
+        "Giriş Skoru": "Pozisyon açılırken hissenin 0-100 skoru.",
+        "Çıkış": "Pozisyonun kapatıldığı tarih ('Trend Sonu' sinyali geldiğinde).",
+        "Çıkış ₺": "Pozisyon kapatılırken kapanış fiyatı.",
+        "P&L %": "Trade'in yüzdesel getirisi. Pozitif = kâr, negatif = zarar.",
+        "Gün": "Pozisyonun kaç gün tutulduğu (takvim günü).",
+    }
+
     styled_d = (
         detail_df.style
         .map(color_pnl, subset=["P&L %"])
@@ -657,7 +707,17 @@ if trades:
             "P&L %": "{:+.2f}",
         })
     )
-    st.dataframe(styled_d, use_container_width=True, hide_index=True, height=500)
+    st.dataframe(
+        styled_d,
+        use_container_width=True,
+        hide_index=True,
+        height=500,
+        column_config={
+            col: st.column_config.Column(col, help=desc)
+            for col, desc in detail_tooltips.items()
+            if col in detail_df.columns
+        }
+    )
 
     csv = detail_df.to_csv(index=False).encode("utf-8")
     st.download_button(
