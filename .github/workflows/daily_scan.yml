@@ -1,0 +1,56 @@
+# Günlük BIST trend taraması — hafta içi her gün 17:45 TR saati (14:45 UTC)
+# Konum: .github/workflows/daily_scan.yml
+#
+# Notlar:
+# - Türkiye kalıcı UTC+3 olduğu için cron sabittir, yaz saati derdi yok.
+# - GitHub Actions cron'u dakikası dakikasına garanti etmez; yoğun saatlerde
+#   birkaç dakika gecikebilir. 17:45 hedefi için sorun değil.
+# - "workflow_dispatch" sayesinde Actions sekmesinden elle de tetikleyebilirsin.
+
+name: Gunluk BIST Trend Taramasi
+
+on:
+  schedule:
+    - cron: "45 14 * * 1-5"   # Pzt-Cum 14:45 UTC = 17:45 TR
+  workflow_dispatch: {}        # elle tetikleme
+
+permissions:
+  contents: write              # JSON'u commit'leyebilmek için
+
+concurrency:
+  group: daily-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Repo'yu çek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Bağımlılıkları yükle
+        run: pip install yfinance pandas numpy
+
+      - name: Taramayı çalıştır
+        run: python scripts/daily_scan.py
+
+      - name: Sonucu commit'le ve push'la
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results/score_history.json
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok (piyasa kapalı veya sinyal yok) — commit atlanıyor."
+          else
+            git commit -m "Günlük trend skorları $(TZ=Europe/Istanbul date +'%Y-%m-%d %H:%M')"
+            git pull --rebase origin ${GITHUB_REF_NAME}
+            git push
+          fi
