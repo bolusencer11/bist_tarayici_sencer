@@ -1,13 +1,15 @@
 """
-BIST Aktif Trend Takip Sayfası
+BIST Aktif Trend Takip Sayfası — DÜZELTİLMİŞ SÜRÜM
+
+Değişiklikler:
+1. Crossover tespiti pandas shift/fillna/~ zinciri yerine saf numpy ile yapılıyor
+   (pandas sürümüne bağlı dtype/pozisyonel indeksleme bug'ı gideriliyor)
+2. 🔍 Debug paneli eklendi: kategori dağılımı ve 3-10 gün bandı kontrolü
 
 Üç bölüm:
 1. 🆕 Yeni Sinyaller — Son 1-2 işlem günü içinde EMA10↑EMA30 crossover
 2. 📈 Aktif Trendler — Son 3-10 işlem günü crossover, trend hala canlı
 3. ⚠ Trend Sonu Uyarısı — EMA10↓EMA30 crossover (çıkış sinyali)
-
-Her hisse için MACD + RSI + Hacim üzerinden 0-100 trend sağlık skoru.
-Skor geçmişi GitHub'a günlük JSON olarak kaydedilir, dünden değişim takip edilir.
 """
 import streamlit as st
 import yfinance as yf
@@ -69,7 +71,7 @@ def compute_macd(close, fast=12, slow=26, signal=9):
 
 
 def analyze_ticker(df):
-    """Tek hisse için tam analiz."""
+    """Tek hisse için tam analiz. Crossover tespiti numpy ile (dtype güvenli)."""
     if len(df) < 35:
         return None
     df = df.copy()
@@ -81,25 +83,22 @@ def analyze_ticker(df):
     df["vol_ma20"] = df["Volume"].rolling(20).mean()
     df["vol_ma5"] = df["Volume"].rolling(5).mean()
 
-    df["above"] = df["EMA10"] > df["EMA30"]
-    df["cross_up"] = df["above"] & ~df["above"].shift(1).fillna(False)
-    df["cross_down"] = ~df["above"] & df["above"].shift(1).fillna(False)
+    # --- Crossover tespiti: saf numpy, pandas dtype tuzaklarından bağımsız ---
+    above = df["EMA10"].to_numpy() > df["EMA30"].to_numpy()  # bool array
+    n = len(above)
+
+    # i. günde kesişim: bugün üstte, dün değildi (ilk gün kesişim sayılmaz)
+    cross_up_pos = np.where(above[1:] & ~above[:-1])[0] + 1
+    cross_down_pos = np.where(~above[1:] & above[:-1])[0] + 1
+
+    days_since_cross_up = int(n - 1 - cross_up_pos[-1]) if len(cross_up_pos) else None
+    days_since_cross_down = int(n - 1 - cross_down_pos[-1]) if len(cross_down_pos) else None
 
     last = df.iloc[-1]
     prev = df.iloc[-2] if len(df) >= 2 else last
-
-    # Son crossover günleri
-    days_since_cross_up = None
-    days_since_cross_down = None
-    if df["cross_up"].any():
-        last_up = df.index[df["cross_up"]].max()
-        days_since_cross_up = len(df) - 1 - df.index.get_loc(last_up)
-    if df["cross_down"].any():
-        last_down = df.index[df["cross_down"]].max()
-        days_since_cross_down = len(df) - 1 - df.index.get_loc(last_down)
+    above_now = bool(above[-1])
 
     # Kategori belirleme
-    above_now = bool(last["above"])
     if above_now:
         if days_since_cross_up is not None and days_since_cross_up <= 2:
             category = "yeni"
@@ -133,13 +132,11 @@ def analyze_ticker(df):
 
 def compute_score(a):
     """0-100 trend sağlık skoru: MACD (33) + RSI (33) + Hacim (34)."""
-    # Momentum (MACD)
     if a["macd_above"]:
         momentum = 33 if a["macd_hist_growing"] else 20
     else:
         momentum = 0
 
-    # Sağlık (RSI)
     rsi = a["rsi"]
     if rsi is None:
         health = 0
@@ -154,7 +151,6 @@ def compute_score(a):
     else:
         health = 0
 
-    # Hacim
     vr = a["vol_ratio"]
     if vr >= 2.0:
         volume = 15  # blow-off riski
@@ -213,7 +209,6 @@ GH_HISTORY_PATH = "results/score_history.json"
 
 
 def github_get_history():
-    """GitHub'dan score_history.json çek. Yoksa boş döner."""
     try:
         token = st.secrets["GITHUB_TOKEN"]
         repo = st.secrets["GITHUB_REPO"]
@@ -262,7 +257,6 @@ def github_save_history(history, sha=None):
 
 
 def prune_history(history, days_keep=90):
-    """N günden eski kayıtları sil."""
     if not history:
         return history
     cutoff = (datetime.now() - timedelta(days=days_keep)).date().isoformat()
@@ -312,7 +306,6 @@ def render_table(rows, section_title, days_label="Trend Yaşı"):
     df = pd.DataFrame(rows)
     df = df.sort_values("Skor", ascending=False).reset_index(drop=True)
 
-    # Kolon sırası
     cols = ["Sembol", "Fiyat", days_label, "EMA Açılım %", "MACD", "RSI", "Hacim ×", "Skor", "Δ Skor", "Yorum"]
     cols = [c for c in cols if c in df.columns]
     df = df[cols]
@@ -446,13 +439,26 @@ if history:
 # --- Analiz ---
 new_signals, active_trends, trend_endings = [], [], []
 today_scores = {}
+debug_rows = []
+analyze_errors = 0
 
 for ticker, df in all_data.items():
     try:
         a = analyze_ticker(df)
     except Exception:
+        analyze_errors += 1
         continue
-    if a is None or a["category"] in ("yok", "olgun"):
+    if a is None:
+        continue
+
+    debug_rows.append({
+        "Sembol": ticker.replace(".IS", ""),
+        "Kategori": a["category"],
+        "Yukarı kesişim (gün önce)": a["days_since_cross_up"],
+        "Aşağı kesişim (gün önce)": a["days_since_cross_down"],
+    })
+
+    if a["category"] in ("yok", "olgun"):
         continue
 
     score, mom, health, vol = compute_score(a)
@@ -475,7 +481,6 @@ for ticker, df in all_data.items():
         else "❌ Aşağı kesti"
     )
 
-    # Δ skor
     delta = None
     if symbol in delta_lookup:
         delta = score - delta_lookup[symbol]
@@ -530,6 +535,28 @@ if last_history_date:
     st.caption(f"📅 Önceki skor karşılaştırması: {last_history_date}")
 else:
     st.caption("📅 Henüz tarihsel kayıt yok — Δ Skor kolonu boş gelecek. Bugünü kaydedince yarın görmeye başlarsın.")
+
+# --- Debug paneli ---
+with st.expander("🔍 Debug: Kategori dağılımı", expanded=False):
+    if analyze_errors:
+        st.warning(f"⚠ {analyze_errors} hisse analiz sırasında hata verdi ve atlandı.")
+    if debug_rows:
+        dbg = pd.DataFrame(debug_rows)
+        counts = dbg["Kategori"].value_counts()
+        st.write("**Kategori dağılımı:**")
+        st.write(counts.to_frame("Adet").T)
+
+        aktif_band = dbg[dbg["Yukarı kesişim (gün önce)"].between(3, 10, inclusive="both")]
+        st.write(f"**3-10 gün bandında yukarı kesişimi olan hisse:** {len(aktif_band)}")
+        if len(aktif_band):
+            st.dataframe(aktif_band, use_container_width=True, hide_index=True)
+
+        st.caption(
+            "3-10 gün bandı doluysa ama Aktif tablosu boşsa min skor eşiğini kontrol et. "
+            "Band da boşsa piyasada gerçekten o yaşta trend yok demektir (nadir ama mümkün)."
+        )
+    else:
+        st.write("Analiz edilebilen hisse yok.")
 
 st.divider()
 
