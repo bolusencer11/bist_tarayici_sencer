@@ -1,13 +1,18 @@
 """
-BIST Sinyal Günlük Performans Sayfası
+BIST Sinyal Günlük Performans Sayfası — ÇIKIŞ MANTIKLI SÜRÜM
 
-Dropdown'dan score_history.json içindeki kayıtlı bir günü seç →
-o tarihte sinyal veren hisselerin, kayıt gününden BUGÜNE kadar
-her işlem günündeki günlük % yükseliş/düşüşü tabloda gösterilir.
+Dropdown'dan kayıtlı bir sinyal günü seç → o günden bugüne hisselerin
+günlük % hareketleri tablolanır.
 
-Tablo yapısı:
-Sembol | Skor | Kategori | 27.06 | 30.06 | 01.07 | ... | Toplam %
-(her tarih kolonu = o günün bir önceki kapanışa göre günlük % değişimi)
+YENİ: Trend sonu (kategori = "son") mantığı.
+Sinyal gününden sonraki kayıtlarda hisse ilk kez "son" kategorisiyle
+görünürse, o günün KAPANIŞINDA satılmış kabul edilir:
+- Sonraki günlerin günlük % kolonları boş bırakılır
+- Toplam % satış günü kapanışında donar
+- Durum kolonu 🔴 Satıldı / 🟢 Açık gösterir
+
+Not: Çıkış tespiti JSON geçmişine dayanır — script her gün çalıştırılıp
+kaydedilmediyse aradaki "son" sinyalleri görülemez.
 """
 import streamlit as st
 import yfinance as yf
@@ -20,7 +25,7 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Sinyal Günlük Performans", page_icon="📅", layout="wide")
 st.title("📅 Sinyal Günlük Performans")
-st.caption("Kayıtlı bir sinyal günü seç — o günden bugüne hisselerin günlük % hareketlerini ve o günkü skoru gör.")
+st.caption("Kayıtlı bir sinyal günü seç — trend sonu uyarısı alan hisseler o günün kapanışında satılmış kabul edilir.")
 
 
 # ============================================================
@@ -52,7 +57,6 @@ def github_get_history():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_prices(symbols_tuple, start_str):
-    """Kayıt tarihinden bugüne fiyat verisi. Baseline için 7 gün geriden başla."""
     start = datetime.fromisoformat(start_str) - timedelta(days=7)
     end = datetime.now() + timedelta(days=1)
     tickers = [s + ".IS" for s in symbols_tuple]
@@ -82,6 +86,19 @@ def extract_close_series(data, symbol, single):
         return None
 
 
+def find_exit_date(history, symbol, signal_date):
+    """
+    Sinyal gününden SONRAKİ kayıtlarda hissenin ilk 'son' kategorisiyle
+    göründüğü tarihi bul. Yoksa None (pozisyon hâlâ açık).
+    """
+    later_dates = sorted(d for d in history.keys() if d > signal_date)
+    for d in later_dates:
+        info = history[d].get(symbol)
+        if info and info.get("category") == "son":
+            return d
+    return None
+
+
 # ============================================================
 # Veri kaynağı
 # ============================================================
@@ -104,7 +121,7 @@ if not history:
 
 
 # ============================================================
-# Sidebar — tarih seçimi ve filtreler
+# Sidebar
 # ============================================================
 
 dates = sorted(history.keys(), reverse=True)
@@ -115,8 +132,20 @@ with st.sidebar:
 
     day_data = history[selected_date]
     categories = sorted({v.get("category", "?") for v in day_data.values()})
-    cat_filter = st.multiselect("Kategori filtresi", categories, default=categories)
+    default_cats = [c for c in categories if c in ("yeni", "aktif")] or categories
+    cat_filter = st.multiselect(
+        "Kategori filtresi", categories, default=default_cats,
+        help="Genelde 'yeni' ve 'aktif' seçilir — 'son' zaten çıkış sinyalidir, giriş adayı değildir",
+    )
     min_score = st.slider("Minimum skor", 0, 100, 0)
+
+    st.divider()
+    apply_exit = st.checkbox(
+        "🔴 Trend sonu uyarısında sat",
+        value=True,
+        help="Sonraki kayıtlarda 'son' kategorisi görülen hisse, o günün kapanışında satılmış kabul edilir. "
+             "Kapatırsan tüm hisseler bugüne kadar açık pozisyon gibi izlenir.",
+    )
 
     run = st.button("▶ Tabloyu Oluştur", type="primary", use_container_width=True)
 
@@ -137,7 +166,7 @@ if not run:
 
 
 # ============================================================
-# Fiyat verisi çek
+# Fiyat verisi çek ve satır satır hesapla
 # ============================================================
 
 symbols = sorted(candidates.keys())
@@ -149,13 +178,14 @@ sig_date = pd.Timestamp(selected_date)
 
 rows = []
 all_dates = set()
+n_sold = 0
 
 for sym in symbols:
     close = extract_close_series(data, sym, single)
     if close is None:
         continue
 
-    # Baseline: sinyal günü kapanışı (veride yoksa history'deki kayıtlı fiyat)
+    # Baseline: sinyal günü kapanışı (yoksa history'deki kayıtlı fiyat)
     on_or_before = close[close.index <= sig_date]
     if not on_or_before.empty and on_or_before.index[-1] == sig_date:
         baseline = float(on_or_before.iloc[-1])
@@ -166,21 +196,46 @@ for sym in symbols:
     if not baseline or baseline <= 0:
         continue
 
-    # Sinyal gününden SONRAKİ işlem günleri
+    # Çıkış tarihi: sonraki kayıtlarda ilk "son" kategorisi
+    exit_date_str = find_exit_date(history, sym, selected_date) if apply_exit else None
+    exit_ts = pd.Timestamp(exit_date_str) if exit_date_str else None
+
     after = close[close.index > sig_date]
     if after.empty:
         continue
 
-    # Günlük % değişim: ilk gün baseline'a göre, sonrakiler bir önceki kapanışa göre
+    # Günlük % değişimler; çıkış gününden SONRAKİ günler dahil edilmez
     daily = {}
     prev = baseline
+    last_price = baseline
+    exit_price = None
+    sold = False
+
     for dt, price in after.items():
+        if exit_ts is not None and dt > exit_ts:
+            sold = True
+            break
         pct = (float(price) / prev - 1.0) * 100.0
         daily[dt.date()] = pct
         prev = float(price)
+        last_price = float(price)
         all_dates.add(dt.date())
+        if exit_ts is not None and dt == exit_ts:
+            exit_price = float(price)
+            sold = True
+            break
 
-    total = (float(after.iloc[-1]) / baseline - 1.0) * 100.0
+    # Çıkış günü tam eşleşmediyse (veri boşluğu): son işlem fiyatı çıkış kabul edilir
+    if exit_ts is not None and exit_price is None and sold:
+        exit_price = last_price
+
+    total = ((exit_price if sold and exit_price else last_price) / baseline - 1.0) * 100.0
+
+    if sold:
+        n_sold += 1
+        status = f"🔴 Satıldı ({pd.Timestamp(exit_date_str).strftime('%d.%m')})"
+    else:
+        status = "🟢 Açık"
 
     info = candidates[sym]
     row = {
@@ -188,13 +243,14 @@ for sym in symbols:
         "Skor": info.get("score", 0),
         "Kategori": info.get("category", "-"),
         "Sinyal Fiyatı": baseline,
+        "Durum": status,
         "Toplam %": total,
     }
     row.update(daily)
     rows.append(row)
 
 if not rows:
-    st.error("Fiyat verisi alınamadı. Tarih çok yeni olabilir (henüz işlem günü geçmemiş) veya bağlantı sorunu var.")
+    st.error("Fiyat verisi alınamadı. Tarih çok yeni olabilir veya bağlantı sorunu var.")
     st.stop()
 
 
@@ -205,12 +261,10 @@ if not rows:
 date_cols = sorted(all_dates)
 df = pd.DataFrame(rows)
 
-# Kolon sırası: kimlik → günlük kolonlar (kronolojik) → toplam
-base_cols = ["Sembol", "Skor", "Kategori", "Sinyal Fiyatı"]
+base_cols = ["Sembol", "Skor", "Kategori", "Sinyal Fiyatı", "Durum"]
 df = df[base_cols + [d for d in date_cols if d in df.columns] + ["Toplam %"]]
 df = df.sort_values("Toplam %", ascending=False).reset_index(drop=True)
 
-# Tarih kolonlarını GG.AA formatına çevir
 rename_map = {d: d.strftime("%d.%m") for d in date_cols}
 df = df.rename(columns=rename_map)
 pct_cols = list(rename_map.values()) + ["Toplam %"]
@@ -218,7 +272,7 @@ pct_cols = list(rename_map.values()) + ["Toplam %"]
 
 def color_pct(v):
     if pd.isna(v):
-        return ""
+        return "background-color: #f5f5f5"  # satış sonrası boş hücreler gri
     try:
         v = float(v)
     except (TypeError, ValueError):
@@ -258,21 +312,31 @@ styled = (
     .format({
         "Sinyal Fiyatı": "₺{:.2f}",
         "Skor": "{:.0f}",
-        **{c: lambda x: f"{x:+.2f}%" if pd.notna(x) else "-" for c in pct_cols},
+        **{c: lambda x: f"{x:+.2f}%" if pd.notna(x) else "" for c in pct_cols},
     })
 )
 
 # Özet metrikler
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Hisse", len(df))
-c2.metric("Geçen işlem günü", len(date_cols))
-c3.metric("Ortalama toplam getiri", f"{df['Toplam %'].mean():+.2f}%")
-c4.metric("Pozitif getiri oranı", f"{(df['Toplam %'] > 0).mean() * 100:.0f}%")
+c2.metric("🟢 Açık", len(df) - n_sold)
+c3.metric("🔴 Satıldı", n_sold)
+c4.metric("Ortalama getiri", f"{df['Toplam %'].mean():+.2f}%")
+c5.metric("Pozitif getiri oranı", f"{(df['Toplam %'] > 0).mean() * 100:.0f}%")
 
 st.divider()
 st.dataframe(styled, use_container_width=True, hide_index=True)
 st.caption(
-    "Her tarih kolonu, o günün **bir önceki kapanışa göre günlük % değişimidir**. "
-    "İlk kolon sinyal günü kapanışına göredir. **Toplam %** = sinyal gününden bugüne kümülatif getiri. "
-    "**Skor**, Aktif Trendler scriptinin o tarihte verdiği 0-100 trend sağlık skorudur."
+    "Her tarih kolonu o günün bir önceki kapanışa göre **günlük % değişimidir**. "
+    "🔴 Satılan hisselerde satış, trend sonu uyarısının kaydedildiği günün **kapanış fiyatından** yapılmış kabul edilir; "
+    "sonraki günler gri/boş bırakılır ve **Toplam %** o günde donar. "
+    "🟢 Açık pozisyonlarda Toplam % son kapanışa göredir. "
+    "**Skor**, sinyal günü kaydedilen 0-100 trend sağlık skorudur."
 )
+
+if apply_exit:
+    st.info(
+        "ℹ Çıkış tespiti JSON geçmişindeki kayıtlara dayanır. Script bir gün çalıştırılıp kaydedilmediyse "
+        "o günkü trend sonu uyarıları görünmez ve hisse açık pozisyon gibi izlenmeye devam eder. "
+        "Bu yüzden her işlem günü 17:45'te analizi çalıştırıp GitHub'a kaydetmek kritik."
+    )
