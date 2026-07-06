@@ -1,21 +1,30 @@
-# Günlük BIST trend taraması — hafta içi her gün 17:45 TR saati (14:45 UTC)
+# Günlük BIST trend taraması
+# Ana tarama : hafta içi 17:33 TR (14:33 UTC)
+# Yedek      : hafta içi 18:23 TR (15:23 UTC) — ana tarama kaydettiyse
+#              script "bugün zaten kayıtlı" deyip dokunmadan çıkar.
 # Konum: .github/workflows/daily_scan.yml
 #
 # Notlar:
-# - Türkiye kalıcı UTC+3 olduğu için cron sabittir, yaz saati derdi yok.
-# - GitHub Actions cron'u dakikası dakikasına garanti etmez; yoğun saatlerde
-#   birkaç dakika gecikebilir. 17:45 hedefi için sorun değil.
-# - "workflow_dispatch" sayesinde Actions sekmesinden elle de tetikleyebilirsin.
+# - Türkiye kalıcı UTC+3, cron sabittir, yaz saati derdi yok.
+# - GitHub cron'u dakikası dakikasına garanti etmez; birkaç dk kayabilir.
+# - Actions sekmesinden elle tetiklerken "force" kutusunu işaretlersen
+#   bugünün mevcut kaydının ÜZERİNE yazar (normalde yazmaz).
 
 name: Gunluk BIST Trend Taramasi
 
 on:
   schedule:
-    - cron: "45 14 * * 1-5"   # Pzt-Cum 14:45 UTC = 17:45 TR
-  workflow_dispatch: {}        # elle tetikleme
+    - cron: "33 14 * * 1-5"   # Pzt-Cum 14:33 UTC = 17:33 TR (ana)
+    - cron: "23 15 * * 1-5"   # Pzt-Cum 15:23 UTC = 18:23 TR (yedek)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Bugünün mevcut kaydının üzerine yaz"
+        type: boolean
+        default: false
 
 permissions:
-  contents: write              # JSON'u commit'leyebilmek için
+  contents: write
 
 concurrency:
   group: daily-scan
@@ -28,10 +37,10 @@ jobs:
 
     steps:
       - name: Repo'yu çek
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Python kur
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -40,6 +49,8 @@ jobs:
         run: pip install yfinance pandas numpy
 
       - name: Taramayı çalıştır
+        env:
+          FORCE_OVERWRITE: ${{ inputs.force == true && '1' || '' }}
         run: python scripts/daily_scan.py
 
       - name: Sonucu commit'le ve push'la
@@ -48,7 +59,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add results/score_history.json
           if git diff --cached --quiet; then
-            echo "Değişiklik yok (piyasa kapalı veya sinyal yok) — commit atlanıyor."
+            echo "Değişiklik yok (zaten kayıtlı / piyasa kapalı) — commit atlanıyor."
           else
             git commit -m "Günlük trend skorları $(TZ=Europe/Istanbul date +'%Y-%m-%d %H:%M')"
             git pull --rebase origin ${GITHUB_REF_NAME}
