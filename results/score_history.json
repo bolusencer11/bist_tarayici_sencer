@@ -1,1 +1,949 @@
-
+{
+  "2026-07-06": {
+    "AFYON": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "price": 12.83,
+      "rsi": 46.8,
+      "category": "son"
+    },
+    "AGHOL": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "price": 32.84,
+      "rsi": 40.6,
+      "category": "aktif"
+    },
+    "AKCNS": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 232.1,
+      "rsi": 52.7,
+      "category": "aktif"
+    },
+    "AKENR": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 11.41,
+      "rsi": 27.7,
+      "category": "son"
+    },
+    "AKFYE": {
+      "score": 82,
+      "momentum": 33,
+      "health": 15,
+      "volume": 34,
+      "price": 25.78,
+      "rsi": 49.1,
+      "category": "yeni"
+    },
+    "ALBRK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 8.07,
+      "rsi": 30.7,
+      "category": "son"
+    },
+    "ALCAR": {
+      "score": 73,
+      "momentum": 33,
+      "health": 25,
+      "volume": 15,
+      "price": 885.5,
+      "rsi": 72.8,
+      "category": "aktif"
+    },
+    "ALKIM": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 17.64,
+      "rsi": 26.0,
+      "category": "son"
+    },
+    "ALTNY": {
+      "score": 92,
+      "momentum": 33,
+      "health": 25,
+      "volume": 34,
+      "price": 18.07,
+      "rsi": 70.9,
+      "category": "yeni"
+    },
+    "ANSGR": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 27.04,
+      "rsi": 37.4,
+      "category": "son"
+    },
+    "ARDYZ": {
+      "score": 91,
+      "momentum": 33,
+      "health": 33,
+      "volume": 25,
+      "price": 63.35,
+      "rsi": 59.8,
+      "category": "aktif"
+    },
+    "ASTOR": {
+      "score": 91,
+      "momentum": 33,
+      "health": 33,
+      "volume": 25,
+      "price": 317.5,
+      "rsi": 58.0,
+      "category": "yeni"
+    },
+    "AYEN": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 33.64,
+      "rsi": 33.2,
+      "category": "son"
+    },
+    "AYES": {
+      "score": 49,
+      "momentum": 0,
+      "health": 15,
+      "volume": 34,
+      "price": 33.24,
+      "rsi": 48.5,
+      "category": "aktif"
+    },
+    "BASGZ": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 47.1,
+      "rsi": 36.1,
+      "category": "son"
+    },
+    "BIOEN": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "price": 18.81,
+      "rsi": 59.0,
+      "category": "aktif"
+    },
+    "BOBET": {
+      "score": 71,
+      "momentum": 33,
+      "health": 33,
+      "volume": 5,
+      "price": 19.31,
+      "rsi": 58.8,
+      "category": "yeni"
+    },
+    "BORLS": {
+      "score": 48,
+      "momentum": 0,
+      "health": 33,
+      "volume": 15,
+      "price": 6.85,
+      "rsi": 63.4,
+      "category": "aktif"
+    },
+    "BOSSA": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "price": 6.22,
+      "rsi": 34.8,
+      "category": "son"
+    },
+    "BRLSM": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 17.99,
+      "rsi": 35.4,
+      "category": "son"
+    },
+    "BRSAN": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 559.0,
+      "rsi": 30.7,
+      "category": "son"
+    },
+    "BSOKE": {
+      "score": 60,
+      "momentum": 20,
+      "health": 25,
+      "volume": 15,
+      "price": 36.48,
+      "rsi": 66.2,
+      "category": "aktif"
+    },
+    "CCOLA": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "price": 82.4,
+      "rsi": 56.1,
+      "category": "aktif"
+    },
+    "CMBTN": {
+      "score": 73,
+      "momentum": 33,
+      "health": 25,
+      "volume": 15,
+      "price": 1812.0,
+      "rsi": 71.2,
+      "category": "aktif"
+    },
+    "CWENE": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 40.0,
+      "rsi": 50.3,
+      "category": "aktif"
+    },
+    "DERIM": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 37.86,
+      "rsi": 29.4,
+      "category": "son"
+    },
+    "DGNMO": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 8.4,
+      "rsi": 41.2,
+      "category": "son"
+    },
+    "DITAS": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 29.9,
+      "rsi": 20.5,
+      "category": "son"
+    },
+    "DOAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 184.6,
+      "rsi": 26.0,
+      "category": "son"
+    },
+    "EDIP": {
+      "score": 70,
+      "momentum": 20,
+      "health": 25,
+      "volume": 25,
+      "price": 38.52,
+      "rsi": 65.6,
+      "category": "aktif"
+    },
+    "EGEPO": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 18.01,
+      "rsi": 41.1,
+      "category": "son"
+    },
+    "EGPRO": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "price": 39.34,
+      "rsi": 46.5,
+      "category": "son"
+    },
+    "EGSER": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "price": 3.12,
+      "rsi": 47.8,
+      "category": "son"
+    },
+    "ENTRA": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 4.58,
+      "rsi": 39.8,
+      "category": "son"
+    },
+    "FMIZP": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "price": 306.5,
+      "rsi": 53.8,
+      "category": "yeni"
+    },
+    "FONET": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "price": 5.16,
+      "rsi": 45.6,
+      "category": "son"
+    },
+    "FORTE": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "price": 96.75,
+      "rsi": 61.1,
+      "category": "yeni"
+    },
+    "GENIL": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 9.05,
+      "rsi": 41.3,
+      "category": "aktif"
+    },
+    "GEREL": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 36.9,
+      "rsi": 44.3,
+      "category": "son"
+    },
+    "GOKNR": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 24.7,
+      "rsi": 37.6,
+      "category": "son"
+    },
+    "GOODY": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "price": 2.79,
+      "rsi": 47.7,
+      "category": "son"
+    },
+    "GSDDE": {
+      "score": 83,
+      "momentum": 33,
+      "health": 25,
+      "volume": 25,
+      "price": 15.4,
+      "rsi": 67.9,
+      "category": "yeni"
+    },
+    "HATEK": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "price": 16.55,
+      "rsi": 59.0,
+      "category": "yeni"
+    },
+    "ICUGS": {
+      "score": 71,
+      "momentum": 33,
+      "health": 33,
+      "volume": 5,
+      "price": 5.89,
+      "rsi": 61.1,
+      "category": "yeni"
+    },
+    "INDES": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 10.8,
+      "rsi": 41.0,
+      "category": "son"
+    },
+    "INGRM": {
+      "score": 100,
+      "momentum": 33,
+      "health": 33,
+      "volume": 34,
+      "price": 458.25,
+      "rsi": 63.5,
+      "category": "yeni"
+    },
+    "INTEK": {
+      "score": 92,
+      "momentum": 33,
+      "health": 25,
+      "volume": 34,
+      "price": 282.75,
+      "rsi": 72.0,
+      "category": "yeni"
+    },
+    "INVEO": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "price": 8.65,
+      "rsi": 59.1,
+      "category": "aktif"
+    },
+    "ISFIN": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 19.64,
+      "rsi": 35.9,
+      "category": "son"
+    },
+    "ISYAT": {
+      "score": 50,
+      "momentum": 20,
+      "health": 15,
+      "volume": 15,
+      "price": 8.02,
+      "rsi": 48.2,
+      "category": "aktif"
+    },
+    "IZFAS": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "price": 63.5,
+      "rsi": 55.6,
+      "category": "aktif"
+    },
+    "KCHOL": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 188.0,
+      "rsi": 34.9,
+      "category": "son"
+    },
+    "KGYO": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 11.0,
+      "rsi": 32.8,
+      "category": "son"
+    },
+    "KLMSN": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 34.9,
+      "rsi": 62.8,
+      "category": "yeni"
+    },
+    "KLNMA": {
+      "score": 100,
+      "momentum": 33,
+      "health": 33,
+      "volume": 34,
+      "price": 10.3,
+      "rsi": 63.7,
+      "category": "aktif"
+    },
+    "KNFRT": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 12.27,
+      "rsi": 17.7,
+      "category": "son"
+    },
+    "KONYA": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "price": 4057.5,
+      "rsi": 60.5,
+      "category": "aktif"
+    },
+    "KRDMD": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "price": 39.14,
+      "rsi": 41.3,
+      "category": "son"
+    },
+    "KRPLS": {
+      "score": 38,
+      "momentum": 0,
+      "health": 33,
+      "volume": 5,
+      "price": 9.4,
+      "rsi": 54.9,
+      "category": "yeni"
+    },
+    "KRSTL": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 10.69,
+      "rsi": 44.1,
+      "category": "son"
+    },
+    "KTSKR": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "price": 103.7,
+      "rsi": 56.1,
+      "category": "yeni"
+    },
+    "LIDFA": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 2.91,
+      "rsi": 44.2,
+      "category": "son"
+    },
+    "LUKSK": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "price": 104.5,
+      "rsi": 46.4,
+      "category": "son"
+    },
+    "MAALT": {
+      "score": 49,
+      "momentum": 0,
+      "health": 15,
+      "volume": 34,
+      "price": 1134.0,
+      "rsi": 46.6,
+      "category": "son"
+    },
+    "MARBL": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 13.22,
+      "rsi": 44.1,
+      "category": "son"
+    },
+    "MEGMT": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 72.4,
+      "rsi": 25.5,
+      "category": "son"
+    },
+    "MGROS": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "price": 639.0,
+      "rsi": 28.5,
+      "category": "son"
+    },
+    "MNDTR": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 5.66,
+      "rsi": 30.4,
+      "category": "son"
+    },
+    "MOGAN": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 15.86,
+      "rsi": 65.0,
+      "category": "aktif"
+    },
+    "NETAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 63.4,
+      "rsi": 22.6,
+      "category": "son"
+    },
+    "OSMEN": {
+      "score": 58,
+      "momentum": 33,
+      "health": 10,
+      "volume": 15,
+      "price": 9.43,
+      "rsi": 79.4,
+      "category": "aktif"
+    },
+    "OTKAR": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "price": 374.0,
+      "rsi": 59.4,
+      "category": "yeni"
+    },
+    "OZYSR": {
+      "score": 92,
+      "momentum": 33,
+      "health": 25,
+      "volume": 34,
+      "price": 13.45,
+      "rsi": 74.6,
+      "category": "aktif"
+    },
+    "PAMEL": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "price": 85.95,
+      "rsi": 49.9,
+      "category": "aktif"
+    },
+    "PAPIL": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "price": 15.03,
+      "rsi": 54.4,
+      "category": "son"
+    },
+    "PARSN": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 83.3,
+      "rsi": 25.7,
+      "category": "son"
+    },
+    "PASEU": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "price": 100.1,
+      "rsi": 40.4,
+      "category": "son"
+    },
+    "PATEK": {
+      "score": 82,
+      "momentum": 33,
+      "health": 15,
+      "volume": 34,
+      "price": 24.12,
+      "rsi": 49.2,
+      "category": "yeni"
+    },
+    "PCILT": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 31.22,
+      "rsi": 18.2,
+      "category": "son"
+    },
+    "PEKGY": {
+      "score": 45,
+      "momentum": 20,
+      "health": 10,
+      "volume": 15,
+      "price": 14.29,
+      "rsi": 81.5,
+      "category": "aktif"
+    },
+    "POLTK": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "price": 5310.0,
+      "rsi": 60.5,
+      "category": "aktif"
+    },
+    "PSDTC": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "price": 143.3,
+      "rsi": 64.3,
+      "category": "aktif"
+    },
+    "QUAGR": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 3.79,
+      "rsi": 29.0,
+      "category": "son"
+    },
+    "RGYAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 193.7,
+      "rsi": 37.2,
+      "category": "son"
+    },
+    "RYSAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 20.8,
+      "rsi": 19.2,
+      "category": "son"
+    },
+    "SANKO": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "price": 21.64,
+      "rsi": 45.3,
+      "category": "son"
+    },
+    "SDTTR": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "price": 263.0,
+      "rsi": 61.5,
+      "category": "aktif"
+    },
+    "SILVR": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 2.56,
+      "rsi": 43.8,
+      "category": "son"
+    },
+    "SKYMD": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 15.35,
+      "rsi": 63.6,
+      "category": "aktif"
+    },
+    "SURGY": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 69.4,
+      "rsi": 38.6,
+      "category": "son"
+    },
+    "TARKM": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 527.0,
+      "rsi": 29.7,
+      "category": "son"
+    },
+    "TATGD": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "price": 19.22,
+      "rsi": 46.9,
+      "category": "son"
+    },
+    "TCELL": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 108.6,
+      "rsi": 34.1,
+      "category": "son"
+    },
+    "TDGYO": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 17.47,
+      "rsi": 60.8,
+      "category": "aktif"
+    },
+    "TGSAS": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "price": 180.0,
+      "rsi": 52.2,
+      "category": "aktif"
+    },
+    "TKFEN": {
+      "score": 50,
+      "momentum": 20,
+      "health": 15,
+      "volume": 15,
+      "price": 134.5,
+      "rsi": 48.7,
+      "category": "aktif"
+    },
+    "TLMAN": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 90.4,
+      "rsi": 17.9,
+      "category": "son"
+    },
+    "TNZTP": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 24.36,
+      "rsi": 43.3,
+      "category": "son"
+    },
+    "TSGYO": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "price": 6.61,
+      "rsi": 20.3,
+      "category": "son"
+    },
+    "ULUSE": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 271.0,
+      "rsi": 18.9,
+      "category": "son"
+    },
+    "ULUUN": {
+      "score": 58,
+      "momentum": 0,
+      "health": 33,
+      "volume": 25,
+      "price": 9.17,
+      "rsi": 60.2,
+      "category": "aktif"
+    },
+    "UNLU": {
+      "score": 58,
+      "momentum": 0,
+      "health": 33,
+      "volume": 25,
+      "price": 13.09,
+      "rsi": 52.8,
+      "category": "aktif"
+    },
+    "VERTU": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 38.8,
+      "rsi": 24.5,
+      "category": "son"
+    },
+    "VERUS": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "price": 513.0,
+      "rsi": 25.2,
+      "category": "son"
+    },
+    "YEOTK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "price": 96.55,
+      "rsi": 23.6,
+      "category": "son"
+    }
+  }
+}
