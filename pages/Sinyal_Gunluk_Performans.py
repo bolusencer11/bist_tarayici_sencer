@@ -250,7 +250,13 @@ for sym in symbols:
     rows.append(row)
 
 if not rows:
-    st.error("Fiyat verisi alınamadı. Tarih çok yeni olabilir veya bağlantı sorunu var.")
+    if sig_date.date() >= datetime.now().date():
+        st.info(
+            "⏳ Bu sinyal günü bugüne ait — performans ölçümü için henüz işlem günü geçmedi. "
+            "İlk günlük % kolonu yarınki kapanıştan sonra oluşacak."
+        )
+    else:
+        st.error("Fiyat verisi alınamadı. Bağlantı sorunu olabilir.")
     st.stop()
 
 
