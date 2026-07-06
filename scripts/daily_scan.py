@@ -11,6 +11,7 @@ Piyasa kapalıysa (bugüne ait veri yoksa) kayıt YAPMAZ ve sessizce çıkar
 Konum: scripts/daily_scan.py
 """
 import json
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -137,6 +138,22 @@ def main():
     today = datetime.now(TZ).date()
     print(f"[{datetime.now(TZ):%Y-%m-%d %H:%M}] Tarama başlıyor (TR saati)")
 
+    force = os.environ.get("FORCE_OVERWRITE", "").lower() in ("1", "true", "yes")
+
+    # Geçmişi en başta yükle — bugün zaten kayıtlıysa yedek tarama
+    # veri indirmeye hiç girmeden çıkar (üzerine yazmaz).
+    history = {}
+    if HISTORY_FILE.exists():
+        try:
+            history = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"UYARI: mevcut geçmiş okunamadı ({e}), sıfırdan başlanıyor.")
+
+    if today.isoformat() in history and not force:
+        print(f"Bugün ({today}) zaten kayıtlı — üzerine yazılmıyor, çıkılıyor. "
+              "(Elle üzerine yazmak için FORCE_OVERWRITE=1)")
+        sys.exit(0)
+
     # Tickers
     if not TICKERS_FILE.exists():
         print(f"HATA: {TICKERS_FILE} bulunamadı.")
@@ -224,14 +241,7 @@ def main():
         print("Kaydedilecek sinyal yok — dosyaya dokunulmadı.")
         sys.exit(0)
 
-    # Geçmişi yükle, bugünü ekle, buda, yaz
-    history = {}
-    if HISTORY_FILE.exists():
-        try:
-            history = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
-        except Exception as e:
-            print(f"UYARI: mevcut geçmiş okunamadı ({e}), sıfırdan başlanıyor.")
-
+    # Bugünü ekle, buda, yaz (geçmiş main() başında yüklendi)
     history[today.isoformat()] = today_scores
     cutoff = (today - timedelta(days=90)).isoformat()
     history = {k: v for k, v in history.items() if k >= cutoff}
