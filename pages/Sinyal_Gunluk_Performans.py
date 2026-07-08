@@ -1,18 +1,12 @@
 """
-BIST Sinyal Günlük Performans Sayfası — ÇIKIŞ MANTIKLI SÜRÜM
+BIST Sinyal Günlük Performans — v3
 
-Dropdown'dan kayıtlı bir sinyal günü seç → o günden bugüne hisselerin
-günlük % hareketleri tablolanır.
-
-YENİ: Trend sonu (kategori = "son") mantığı.
-Sinyal gününden sonraki kayıtlarda hisse ilk kez "son" kategorisiyle
-görünürse, o günün KAPANIŞINDA satılmış kabul edilir:
-- Sonraki günlerin günlük % kolonları boş bırakılır
-- Toplam % satış günü kapanışında donar
-- Durum kolonu 🔴 Satıldı / 🟢 Açık gösterir
-
-Not: Çıkış tespiti JSON geçmişine dayanır — script her gün çalıştırılıp
-kaydedilmediyse aradaki "son" sinyalleri görülemez.
+v2'ye göre yenilikler:
+1. Yahoo'da eksik olan işlem günleri JSON geçmişindeki kayıtlı fiyatlarla
+   doldurulur (17:33 tarama fiyatı ~kapanış). Eksik gün kolonları artık kaybolmaz.
+2. Boş Yahoo cevabı cache'lenmez + otomatik yeniden deneme (rate limit zehirlenmesi biter).
+3. Sidebar'da "Veriyi GitHub'dan yenile" butonu.
+4. Sinyal günü bugünse anlaşılır bilgi mesajı.
 """
 import streamlit as st
 import yfinance as yf
@@ -21,6 +15,7 @@ import numpy as np
 import json
 import base64
 import requests
+import time
 from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Sinyal Günlük Performans", page_icon="📅", layout="wide")
@@ -50,6 +45,8 @@ def github_get_history():
         if r.status_code == 200:
             content = base64.b64decode(r.json()["content"]).decode("utf-8")
             return json.loads(content)
+        elif r.status_code == 404:      # dosya henüz yok = boş geçmiş
+            return {}
     except Exception:
         pass
     return None
@@ -57,18 +54,19 @@ def github_get_history():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_prices(symbols_tuple, start_str):
+    """Boş sonuç cache'lenmez: exception fırlatılır, bir kez yeniden denenir."""
     start = datetime.fromisoformat(start_str) - timedelta(days=7)
     end = datetime.now() + timedelta(days=1)
     tickers = [s + ".IS" for s in symbols_tuple]
-    data = yf.download(
-        tickers,
-        start=start, end=end,
-        group_by="ticker",
-        auto_adjust=True,
-        progress=False,
-        threads=True,
-    )
-    return data
+    for attempt in range(2):
+        data = yf.download(
+            tickers, start=start, end=end,
+            group_by="ticker", auto_adjust=True, progress=False, threads=True,
+        )
+        if data is not None and not data.empty:
+            return data
+        time.sleep(4)
+    raise RuntimeError("Yahoo veri döndürmedi (rate limit olabilir)")
 
 
 def extract_close_series(data, symbol, single):
@@ -87,16 +85,23 @@ def extract_close_series(data, symbol, single):
 
 
 def find_exit_date(history, symbol, signal_date):
-    """
-    Sinyal gününden SONRAKİ kayıtlarda hissenin ilk 'son' kategorisiyle
-    göründüğü tarihi bul. Yoksa None (pozisyon hâlâ açık).
-    """
-    later_dates = sorted(d for d in history.keys() if d > signal_date)
-    for d in later_dates:
+    """Sinyal sonrası kayıtlarda ilk 'son' kategorisinin tarihi. Yoksa None."""
+    for d in sorted(k for k in history.keys() if k > signal_date):
         info = history[d].get(symbol)
         if info and info.get("category") == "son":
             return d
     return None
+
+
+def history_price_map(history, symbol, after_date_str):
+    """Sinyal sonrası kayıtlı günlerdeki fiyatlar: {Timestamp: fiyat}."""
+    out = {}
+    for d, day in history.items():
+        if d > after_date_str and symbol in day:
+            p = day[symbol].get("price")
+            if p:
+                out[pd.Timestamp(d)] = float(p)
+    return out
 
 
 # ============================================================
@@ -116,7 +121,7 @@ if history is None:
             st.stop()
 
 if not history:
-    st.info("Henüz kayıtlı sinyal geçmişi yok. Önce Aktif Trendler sayfasında **Bugünü GitHub'a kaydet** ile skor biriktir.")
+    st.info("Henüz kayıtlı sinyal geçmişi yok. Otomatik tarama ilk kaydı attığında burada görünecek.")
     st.stop()
 
 
@@ -128,6 +133,11 @@ dates = sorted(history.keys(), reverse=True)
 
 with st.sidebar:
     st.header("⚙ Ayarlar")
+
+    if st.button("🔄 Veriyi GitHub'dan yenile", use_container_width=True):
+        github_get_history.clear()
+        st.rerun()
+
     selected_date = st.selectbox("📅 Kayıtlı sinyal günü", dates)
 
     day_data = history[selected_date]
@@ -143,8 +153,7 @@ with st.sidebar:
     apply_exit = st.checkbox(
         "🔴 Trend sonu uyarısında sat",
         value=True,
-        help="Sonraki kayıtlarda 'son' kategorisi görülen hisse, o günün kapanışında satılmış kabul edilir. "
-             "Kapatırsan tüm hisseler bugüne kadar açık pozisyon gibi izlenir.",
+        help="Sonraki kayıtlarda 'son' kategorisi görülen hisse, o günün kapanışında satılmış kabul edilir.",
     )
 
     run = st.button("▶ Tabloyu Oluştur", type="primary", use_container_width=True)
@@ -166,18 +175,26 @@ if not run:
 
 
 # ============================================================
-# Fiyat verisi çek ve satır satır hesapla
+# Fiyat verisi çek
 # ============================================================
 
 symbols = sorted(candidates.keys())
 st.info(f"📥 {len(symbols)} hisse için {selected_date} → bugün fiyat verisi indiriliyor...")
-data = fetch_prices(tuple(symbols), selected_date)
-single = len(symbols) == 1
 
+try:
+    data = fetch_prices(tuple(symbols), selected_date)
+except Exception:
+    st.error("Yahoo Finance şu an veri vermiyor (muhtemelen geçici limit). "
+             "Birkaç dakika sonra tekrar dene — başarısız deneme cache'lenmez.")
+    st.stop()
+
+single = len(symbols) == 1
 sig_date = pd.Timestamp(selected_date)
+today_ts = pd.Timestamp(datetime.now().date())
 
 rows = []
 all_dates = set()
+filled_days = set()   # Yahoo'da eksik olup JSON'dan doldurulan günler
 n_sold = 0
 
 for sym in symbols:
@@ -185,7 +202,7 @@ for sym in symbols:
     if close is None:
         continue
 
-    # Baseline: sinyal günü kapanışı (yoksa history'deki kayıtlı fiyat)
+    # Baseline: sinyal günü kapanışı (yoksa JSON'daki kayıtlı fiyat)
     on_or_before = close[close.index <= sig_date]
     if not on_or_before.empty and on_or_before.index[-1] == sig_date:
         baseline = float(on_or_before.iloc[-1])
@@ -196,15 +213,21 @@ for sym in symbols:
     if not baseline or baseline <= 0:
         continue
 
-    # Çıkış tarihi: sonraki kayıtlarda ilk "son" kategorisi
-    exit_date_str = find_exit_date(history, sym, selected_date) if apply_exit else None
-    exit_ts = pd.Timestamp(exit_date_str) if exit_date_str else None
+    after = close[close.index > sig_date].copy()
 
-    after = close[close.index > sig_date]
+    # --- Yahoo'da eksik günleri JSON kayıtlarından doldur ---
+    for ts, price in history_price_map(history, sym, selected_date).items():
+        if ts <= today_ts and ts not in after.index:
+            after.loc[ts] = price
+            filled_days.add(ts.date())
+    after = after.sort_index()
+
     if after.empty:
         continue
 
-    # Günlük % değişimler; çıkış gününden SONRAKİ günler dahil edilmez
+    exit_date_str = find_exit_date(history, sym, selected_date) if apply_exit else None
+    exit_ts = pd.Timestamp(exit_date_str) if exit_date_str else None
+
     daily = {}
     prev = baseline
     last_price = baseline
@@ -225,7 +248,6 @@ for sym in symbols:
             sold = True
             break
 
-    # Çıkış günü tam eşleşmediyse (veri boşluğu): son işlem fiyatı çıkış kabul edilir
     if exit_ts is not None and exit_price is None and sold:
         exit_price = last_price
 
@@ -251,10 +273,8 @@ for sym in symbols:
 
 if not rows:
     if sig_date.date() >= datetime.now().date():
-        st.info(
-            "⏳ Bu sinyal günü bugüne ait — performans ölçümü için henüz işlem günü geçmedi. "
-            "İlk günlük % kolonu yarınki kapanıştan sonra oluşacak."
-        )
+        st.info("⏳ Bu sinyal günü bugüne ait — performans ölçümü için henüz işlem günü geçmedi. "
+                "İlk günlük % kolonu yarınki kapanıştan sonra oluşacak.")
     else:
         st.error("Fiyat verisi alınamadı. Bağlantı sorunu olabilir.")
     st.stop()
@@ -278,7 +298,7 @@ pct_cols = list(rename_map.values()) + ["Toplam %"]
 
 def color_pct(v):
     if pd.isna(v):
-        return "background-color: #f5f5f5"  # satış sonrası boş hücreler gri
+        return "background-color: #f5f5f5"
     try:
         v = float(v)
     except (TypeError, ValueError):
@@ -322,13 +342,20 @@ styled = (
     })
 )
 
-# Özet metrikler
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Hisse", len(df))
 c2.metric("🟢 Açık", len(df) - n_sold)
 c3.metric("🔴 Satıldı", n_sold)
 c4.metric("Ortalama getiri", f"{df['Toplam %'].mean():+.2f}%")
 c5.metric("Pozitif getiri oranı", f"{(df['Toplam %'] > 0).mean() * 100:.0f}%")
+
+if filled_days:
+    gunler = ", ".join(d.strftime("%d.%m") for d in sorted(filled_days))
+    st.warning(f"⚠ Yahoo verisinde eksik olan şu günler JSON tarama fiyatlarıyla dolduruldu: **{gunler}**. "
+               "Bu değerler 17:33 tarama anı fiyatıdır (~kapanış); Yahoo barı geldiğinde kendiliğinden resmi kapanışa döner.")
+
+if datetime.now().date() in all_dates:
+    st.caption("ℹ Bugünün kolonu seans kapanana kadar anlık fiyatı gösterir; kapanışta kesinleşir.")
 
 st.divider()
 st.dataframe(styled, use_container_width=True, hide_index=True)
@@ -339,10 +366,3 @@ st.caption(
     "🟢 Açık pozisyonlarda Toplam % son kapanışa göredir. "
     "**Skor**, sinyal günü kaydedilen 0-100 trend sağlık skorudur."
 )
-
-if apply_exit:
-    st.info(
-        "ℹ Çıkış tespiti JSON geçmişindeki kayıtlara dayanır. Script bir gün çalıştırılıp kaydedilmediyse "
-        "o günkü trend sonu uyarıları görünmez ve hisse açık pozisyon gibi izlenmeye devam eder. "
-        "Bu yüzden her işlem günü 17:45'te analizi çalıştırıp GitHub'a kaydetmek kritik."
-    )
