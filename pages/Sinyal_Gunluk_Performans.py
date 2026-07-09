@@ -1,12 +1,14 @@
 """
-BIST Sinyal Günlük Performans — v3
+BIST Sinyal Günlük Performans — v4
 
-v2'ye göre yenilikler:
-1. Yahoo'da eksik olan işlem günleri JSON geçmişindeki kayıtlı fiyatlarla
-   doldurulur (17:33 tarama fiyatı ~kapanış). Eksik gün kolonları artık kaybolmaz.
-2. Boş Yahoo cevabı cache'lenmez + otomatik yeniden deneme (rate limit zehirlenmesi biter).
-3. Sidebar'da "Veriyi GitHub'dan yenile" butonu.
-4. Sinyal günü bugünse anlaşılır bilgi mesajı.
+v3'e göre yenilikler:
+1. Günlük % hücrelerinde o günün HA bayrağı ikon olarak gösterilir:
+   "+2.31% 🟢" = o gün alt fitilsiz dolgun yeşil HA mumu (AL)
+   "-1.80% 🔴" = o gün üst fitilsiz dolgun kırmızı HA mumu (SAT)
+   (JSON'da ha alanı olan günler için — eski kayıtlarda ikon çıkmaz)
+2. Sinyal günündeki HA bayrağı ayrı kolonda (Skor'un yanında)
+v3 özellikleri korundu: Yahoo'da eksik günlerin JSON'dan doldurulması,
+cache zehirlenmesi koruması, GitHub yenileme butonu.
 """
 import streamlit as st
 import yfinance as yf
@@ -45,7 +47,7 @@ def github_get_history():
         if r.status_code == 200:
             content = base64.b64decode(r.json()["content"]).decode("utf-8")
             return json.loads(content)
-        elif r.status_code == 404:      # dosya henüz yok = boş geçmiş
+        elif r.status_code == 404:
             return {}
     except Exception:
         pass
@@ -101,6 +103,20 @@ def history_price_map(history, symbol, after_date_str):
             p = day[symbol].get("price")
             if p:
                 out[pd.Timestamp(d)] = float(p)
+    return out
+
+
+HA_ICON = {"AL": "🟢", "SAT": "🔴"}
+
+
+def ha_icon_map(history, symbol, after_date_str):
+    """Sinyal sonrası günlerdeki HA bayrakları: {date: '🟢'/'🔴'}."""
+    out = {}
+    for d, day in history.items():
+        if d > after_date_str and symbol in day:
+            flag = day[symbol].get("ha")
+            if flag in HA_ICON:
+                out[pd.Timestamp(d).date()] = HA_ICON[flag]
     return out
 
 
@@ -193,8 +209,9 @@ sig_date = pd.Timestamp(selected_date)
 today_ts = pd.Timestamp(datetime.now().date())
 
 rows = []
+icons = {}            # (sembol, tarih) -> 🟢/🔴
 all_dates = set()
-filled_days = set()   # Yahoo'da eksik olup JSON'dan doldurulan günler
+filled_days = set()
 n_sold = 0
 
 for sym in symbols:
@@ -202,7 +219,6 @@ for sym in symbols:
     if close is None:
         continue
 
-    # Baseline: sinyal günü kapanışı (yoksa JSON'daki kayıtlı fiyat)
     on_or_before = close[close.index <= sig_date]
     if not on_or_before.empty and on_or_before.index[-1] == sig_date:
         baseline = float(on_or_before.iloc[-1])
@@ -215,7 +231,7 @@ for sym in symbols:
 
     after = close[close.index > sig_date].copy()
 
-    # --- Yahoo'da eksik günleri JSON kayıtlarından doldur ---
+    # Yahoo'da eksik günleri JSON kayıtlarından doldur
     for ts, price in history_price_map(history, sym, selected_date).items():
         if ts <= today_ts and ts not in after.index:
             after.loc[ts] = price
@@ -224,6 +240,10 @@ for sym in symbols:
 
     if after.empty:
         continue
+
+    # O hissenin sinyal sonrası HA bayrakları
+    for d, icon in ha_icon_map(history, sym, selected_date).items():
+        icons[(sym, d)] = icon
 
     exit_date_str = find_exit_date(history, sym, selected_date) if apply_exit else None
     exit_ts = pd.Timestamp(exit_date_str) if exit_date_str else None
@@ -263,6 +283,7 @@ for sym in symbols:
     row = {
         "Sembol": sym,
         "Skor": info.get("score", 0),
+        "HA": HA_ICON.get(info.get("ha"), "—") + (" " + info.get("ha") if info.get("ha") in HA_ICON else ""),
         "Kategori": info.get("category", "-"),
         "Sinyal Fiyatı": baseline,
         "Durum": status,
@@ -287,7 +308,7 @@ if not rows:
 date_cols = sorted(all_dates)
 df = pd.DataFrame(rows)
 
-base_cols = ["Sembol", "Skor", "Kategori", "Sinyal Fiyatı", "Durum"]
+base_cols = ["Sembol", "Skor", "HA", "Kategori", "Sinyal Fiyatı", "Durum"]
 df = df[base_cols + [d for d in date_cols if d in df.columns] + ["Toplam %"]]
 df = df.sort_values("Toplam %", ascending=False).reset_index(drop=True)
 
@@ -331,16 +352,24 @@ def color_score(v):
         return "background-color: #ffcdd2; color: #b71c1c; font-weight: 600"
 
 
-styled = (
-    df.style
-    .map(color_pct, subset=pct_cols)
-    .map(color_score, subset=["Skor"])
-    .format({
-        "Sinyal Fiyatı": "₺{:.2f}",
-        "Skor": "{:.0f}",
-        **{c: lambda x: f"{x:+.2f}%" if pd.notna(x) else "" for c in pct_cols},
-    })
-)
+# Renk matrisi SAYISAL değerlerden hesaplanır (ikon eklenmeden önce)
+styles_df = pd.DataFrame("", index=df.index, columns=df.columns)
+for c in pct_cols:
+    styles_df[c] = df[c].map(color_pct)
+styles_df["Skor"] = df["Skor"].map(color_score)
+
+# Görüntü tablosu: sayılar formatlanır, günlük hücrelere HA ikonu eklenir
+df_disp = df.copy()
+for d, col in rename_map.items():
+    df_disp[col] = [
+        (f"{v:+.2f}%" + (f" {icons[(sym, d)]}" if (sym, d) in icons else "")) if pd.notna(v) else ""
+        for sym, v in zip(df["Sembol"], df[col])
+    ]
+df_disp["Toplam %"] = df["Toplam %"].map(lambda v: f"{v:+.2f}%" if pd.notna(v) else "")
+df_disp["Sinyal Fiyatı"] = df["Sinyal Fiyatı"].map(lambda v: f"₺{v:.2f}")
+df_disp["Skor"] = df["Skor"].map(lambda v: f"{v:.0f}")
+
+styled = df_disp.style.apply(lambda _: styles_df, axis=None)
 
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Hisse", len(df))
@@ -352,7 +381,7 @@ c5.metric("Pozitif getiri oranı", f"{(df['Toplam %'] > 0).mean() * 100:.0f}%")
 if filled_days:
     gunler = ", ".join(d.strftime("%d.%m") for d in sorted(filled_days))
     st.warning(f"⚠ Yahoo verisinde eksik olan şu günler JSON tarama fiyatlarıyla dolduruldu: **{gunler}**. "
-               "Bu değerler 17:33 tarama anı fiyatıdır (~kapanış); Yahoo barı geldiğinde kendiliğinden resmi kapanışa döner.")
+               "Bu değerler 17:33 tarama anı fiyatıdır (~kapanış); Yahoo barı geldiğinde resmi kapanışa döner.")
 
 if datetime.now().date() in all_dates:
     st.caption("ℹ Bugünün kolonu seans kapanana kadar anlık fiyatı gösterir; kapanışta kesinleşir.")
@@ -361,8 +390,13 @@ st.divider()
 st.dataframe(styled, use_container_width=True, hide_index=True)
 st.caption(
     "Her tarih kolonu o günün bir önceki kapanışa göre **günlük % değişimidir**. "
-    "🔴 Satılan hisselerde satış, trend sonu uyarısının kaydedildiği günün **kapanış fiyatından** yapılmış kabul edilir; "
-    "sonraki günler gri/boş bırakılır ve **Toplam %** o günde donar. "
-    "🟢 Açık pozisyonlarda Toplam % son kapanışa göredir. "
-    "**Skor**, sinyal günü kaydedilen 0-100 trend sağlık skorudur."
+    "Hücredeki **🟢** = o gün HA alt fitilsiz dolgun yeşil mum (AL), **🔴** = üst fitilsiz dolgun kırmızı mum (SAT) "
+    "— HA kayıtları olan günler için gösterilir. Soldaki **HA kolonu** sinyal günündeki bayraktır. "
+    "🔴 Satılan hisselerde satış, trend sonu uyarısının kaydedildiği günün kapanış fiyatından yapılmış kabul edilir; "
+    "sonraki günler gri/boş bırakılır ve **Toplam %** o günde donar. 🟢 Açık pozisyonlarda Toplam % son kapanışa göredir."
+)
+st.caption(
+    "📐 Korelasyon okuma notu: 🟢 ikonlu hücrenin kendisinin yeşil olması beklenen bir durumdur (büyük yükseliş, "
+    "fitilsiz mumu zaten üretir). Asıl bakılacak şey ikonun **sonraki** hücreleri: 🟢 sonrası yeşil devam ediyorsa "
+    "HA süreklilik sinyali olarak işe yarıyor demektir."
 )
