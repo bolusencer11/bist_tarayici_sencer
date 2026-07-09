@@ -1,5 +1,5 @@
 """
-BIST Aktif Trend Takip Sayfası — v4 (Heikin Ashi gösterge kolonu, skora dahil değil)
+BIST Aktif Trend Takip Sayfası — v5 (v4 + manuel GitHub kayıt paneli)
 
 Analiz/skorlama mantığı repo kökündeki trend_core.py modülünden gelir.
 Yenilikler:
@@ -84,6 +84,39 @@ def github_get_history():
     return None, None
 
 
+def github_save_history(history, sha=None):
+    try:
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["GITHUB_REPO"]
+    except (KeyError, FileNotFoundError):
+        return False, "secrets ayarlı değil"
+
+    url = f"https://api.github.com/repos/{repo}/contents/{GH_HISTORY_PATH}"
+    headers = {"Authorization": f"token {token}"}
+    content = json.dumps(history, ensure_ascii=False, indent=2)
+    encoded = base64.b64encode(content.encode()).decode()
+    payload = {
+        "message": f"Manuel trend skor kaydı {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        "content": encoded,
+    }
+    if sha:
+        payload["sha"] = sha
+    try:
+        r = requests.put(url, headers=headers, json=payload, timeout=15)
+        if r.status_code in (200, 201):
+            return True, None
+        return False, f"HTTP {r.status_code}: {r.text[:200]}"
+    except Exception as e:
+        return False, str(e)
+
+
+def prune_history(history, days_keep=90):
+    if not history:
+        return history
+    cutoff = (datetime.now() - timedelta(days=days_keep)).date().isoformat()
+    return {k: v for k, v in history.items() if k >= cutoff}
+
+
 # ============================================================
 # UI Yardımcıları
 # ============================================================
@@ -165,6 +198,38 @@ with st.sidebar:
     )
 
     run = st.button("▶ Analizi Çalıştır", type="primary", use_container_width=True)
+
+
+# ============================================================
+# Manuel kayıt paneli (son analizden bekleyen kayıt varsa göster)
+# ============================================================
+
+pending = st.session_state.get("pending_save")
+if pending:
+    with st.expander(f"📤 Manuel kayıt: {pending['target']} ({len(pending['scores'])} hisse)", expanded=True):
+        st.caption("Otomatik taramayı beklemeden bugünün taramasını GitHub'a yazabilirsin. "
+                   "Kayıt düşünce otomatik tarama o günü atlar (üzerine yazmaz).")
+        overwrite = st.checkbox("Mevcut kaydın üzerine yaz", value=False,
+                                help="O gün için zaten kayıt varsa ancak bunu işaretlersen değiştirilir")
+        if st.button("📤 GitHub'a kaydet", type="primary"):
+            hist, sha = github_get_history()
+            if hist is None:
+                st.error("GitHub secrets ayarlı değil veya dosya okunamadı.")
+            else:
+                tkey = pending["target"]
+                if tkey in hist and not overwrite:
+                    st.warning(f"{tkey} zaten kayıtlı (muhtemelen otomatik tarama atmış). "
+                               "Değiştirmek istiyorsan 'üzerine yaz' kutusunu işaretle.")
+                else:
+                    hist[tkey] = pending["scores"]
+                    hist = prune_history(hist)
+                    ok, err = github_save_history(hist, sha=sha)
+                    if ok:
+                        st.success(f"✅ {len(pending['scores'])} hisse {tkey} anahtarıyla kaydedildi. "
+                                   "Performans sayfasında 🔄 GitHub'dan yenile ile görebilirsin.")
+                        st.session_state.pop("pending_save", None)
+                    else:
+                        st.error(f"Kayıt başarısız: {err}")
 
 
 # ============================================================
@@ -253,6 +318,7 @@ if history:
 
 # --- Analiz ---
 new_signals, active_trends, trend_endings = [], [], []
+today_scores = {}
 debug_rows = []
 analyze_errors = 0
 
@@ -278,6 +344,19 @@ for ticker, df in all_data.items():
     score, mom, health, vol = compute_score(a)
     comment = make_comment(a, score)
     symbol = ticker.replace(".IS", "")
+    ha = a.get("ha")
+
+    today_scores[symbol] = {
+        "score": score,
+        "momentum": mom,
+        "health": health,
+        "volume": vol,
+        "ha": (ha or {}).get("signal"),
+        "ha_streak": (ha or {}).get("streak", 0),
+        "price": round(a["fiyat"], 2),
+        "rsi": round(a["rsi"], 1) if a["rsi"] is not None else None,
+        "category": a["category"],
+    }
 
     macd_label = (
         "✅ Yukarı + güçleniyor" if a["macd_above"] and a["macd_hist_growing"]
@@ -312,6 +391,11 @@ for ticker, df in all_data.items():
     elif a["category"] == "son":
         base_row["Bozulma (gün)"] = a["days_since_cross_down"]
         trend_endings.append(base_row)
+
+# --- Bekleyen manuel kayıt (hedef gün = en güncel bar günü, daily_scan ile aynı mantık) ---
+if today_scores:
+    latest_bar = max(pd.to_datetime(df.index[-1]).date() for df in all_data.values())
+    st.session_state["pending_save"] = {"target": latest_bar.isoformat(), "scores": today_scores}
 
 # --- Özet ---
 c1, c2, c3, c4 = st.columns(4)
