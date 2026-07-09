@@ -96,14 +96,26 @@ def main():
         print("HATA: Hiç veri indirilemedi.")
         sys.exit(1)
 
-    # Piyasa açık mıydı? En güncel bar bugüne ait değilse kayıt yapma.
+    # Hedef gün = verideki en güncel bar günü (bugün olmak zorunda değil).
+    # Böylece GitHub cron'u gece yarısını aşacak kadar gecikse bile
+    # dünün kaydı kaybolmaz: run dünün barını görüp DÜNÜ kaydeder.
     latest_bar = max(
         pd.to_datetime(df.index[-1]).date() for df in all_data.values()
     )
-    if latest_bar < today:
-        print(f"Bugüne ({today}) ait bar yok — en güncel veri {latest_bar}. "
-              "Piyasa kapalı görünüyor, kayıt atlanıyor.")
+    target = latest_bar
+
+    if (today - target).days > 4:
+        print(f"En güncel bar ({target}) çok eski — veri sorunu olabilir, kayıt atlanıyor.")
         sys.exit(0)
+
+    if target.isoformat() in history and not force:
+        print(f"Hedef gün ({target}) zaten kayıtlı (piyasa kapalı/tatil senaryosu) — "
+              "üzerine yazılmıyor, çıkılıyor.")
+        sys.exit(0)
+
+    if target != today:
+        print(f"Not: bugün {today}, ama en güncel bar {target} — kayıt {target} anahtarıyla atılacak "
+              "(gecikmiş cron telafisi).")
 
     # Analiz
     today_scores = {}
@@ -149,7 +161,7 @@ def main():
     HISTORY_FILE.write_text(
         json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"✅ {len(today_scores)} hissenin skoru kaydedildi → {HISTORY_FILE.relative_to(REPO_ROOT)} "
+    print(f"✅ {len(today_scores)} hissenin skoru {target} anahtarıyla kaydedildi → {HISTORY_FILE.relative_to(REPO_ROOT)} "
           f"(toplam {len(history)} günlük kayıt)")
 
 
