@@ -64559,5 +64559,348 @@
       "rsi": 35.8,
       "category": "son"
     }
+  },
+  "2026-09-30": {
+    "AGHOL": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 3,
+      "price": 31.48,
+      "rsi": 35.1,
+      "category": "son"
+    },
+    "AKBNK": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 67.0,
+      "rsi": 39.5,
+      "category": "son"
+    },
+    "ALARK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 98.65,
+      "rsi": 25.7,
+      "category": "son"
+    },
+    "ALBRK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 8.3,
+      "rsi": 34.6,
+      "category": "son"
+    },
+    "AYGAZ": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 287.75,
+      "rsi": 27.1,
+      "category": "son"
+    },
+    "BMSTL": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 36.5,
+      "rsi": 33.1,
+      "category": "son"
+    },
+    "BOSSA": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 5.88,
+      "rsi": 32.2,
+      "category": "son"
+    },
+    "BRSAN": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 625.0,
+      "rsi": 31.4,
+      "category": "son"
+    },
+    "CRFSA": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 194.7,
+      "rsi": 32.5,
+      "category": "son"
+    },
+    "EGEEN": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 5070.0,
+      "rsi": 45.5,
+      "category": "son"
+    },
+    "GARAN": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 122.9,
+      "rsi": 38.1,
+      "category": "son"
+    },
+    "HRKET": {
+      "score": 64,
+      "momentum": 20,
+      "health": 10,
+      "volume": 34,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 8.1,
+      "rsi": 81.0,
+      "category": "aktif"
+    },
+    "ISCTR": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 12.2,
+      "rsi": 34.8,
+      "category": "son"
+    },
+    "KONYA": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 3500.0,
+      "rsi": 36.5,
+      "category": "son"
+    },
+    "LOGO": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 135.9,
+      "rsi": 43.5,
+      "category": "aktif"
+    },
+    "MARTI": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 0.98,
+      "rsi": 19.2,
+      "category": "son"
+    },
+    "MEPET": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 18.99,
+      "rsi": 42.5,
+      "category": "aktif"
+    },
+    "MPARK": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 417.75,
+      "rsi": 37.3,
+      "category": "son"
+    },
+    "MRGYO": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 1.02,
+      "rsi": 24.6,
+      "category": "son"
+    },
+    "NETAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 3,
+      "price": 71.6,
+      "rsi": 17.0,
+      "category": "son"
+    },
+    "ORGE": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 3,
+      "price": 21.02,
+      "rsi": 27.5,
+      "category": "son"
+    },
+    "PETKM": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 18.91,
+      "rsi": 23.3,
+      "category": "son"
+    },
+    "TAVHL": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 261.25,
+      "rsi": 41.7,
+      "category": "son"
+    },
+    "TNZTP": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 25.0,
+      "rsi": 34.6,
+      "category": "son"
+    },
+    "TOASO": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 262.0,
+      "rsi": 36.8,
+      "category": "son"
+    },
+    "TRCAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 41.28,
+      "rsi": 11.6,
+      "category": "son"
+    },
+    "TUCLK": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 4.11,
+      "rsi": 54.5,
+      "category": "aktif"
+    },
+    "TUKAS": {
+      "score": 69,
+      "momentum": 20,
+      "health": 15,
+      "volume": 34,
+      "ha": "SAT",
+      "ha_streak": 3,
+      "price": 1.94,
+      "rsi": 45.0,
+      "category": "aktif"
+    },
+    "UNLU": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 10.83,
+      "rsi": 50.2,
+      "category": "aktif"
+    },
+    "YKBNK": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 34.04,
+      "rsi": 42.2,
+      "category": "son"
+    },
+    "YKSLN": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 2.08,
+      "rsi": 29.6,
+      "category": "son"
+    }
   }
 }
