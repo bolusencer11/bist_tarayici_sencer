@@ -65267,5 +65267,315 @@
       "rsi": 22.7,
       "category": "son"
     }
+  },
+  "2026-10-02": {
+    "AGHOL": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 32.5,
+      "rsi": 39.0,
+      "category": "son"
+    },
+    "AKBNK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 3,
+      "price": 67.1,
+      "rsi": 38.9,
+      "category": "son"
+    },
+    "AYGAZ": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 288.5,
+      "rsi": 25.5,
+      "category": "son"
+    },
+    "BOSSA": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 5.88,
+      "rsi": 38.6,
+      "category": "son"
+    },
+    "BRSAN": {
+      "score": 48,
+      "momentum": 0,
+      "health": 33,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 703.5,
+      "rsi": 53.9,
+      "category": "yeni"
+    },
+    "CRFSA": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 199.8,
+      "rsi": 35.0,
+      "category": "son"
+    },
+    "EGEEN": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 5142.5,
+      "rsi": 31.6,
+      "category": "son"
+    },
+    "GARAN": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 125.9,
+      "rsi": 41.4,
+      "category": "son"
+    },
+    "HRKET": {
+      "score": 35,
+      "momentum": 20,
+      "health": 10,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 8.44,
+      "rsi": 84.5,
+      "category": "aktif"
+    },
+    "ISCTR": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 12.45,
+      "rsi": 36.6,
+      "category": "son"
+    },
+    "KCHOL": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 206.8,
+      "rsi": 35.0,
+      "category": "son"
+    },
+    "LMKDC": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 2,
+      "price": 24.56,
+      "rsi": 62.6,
+      "category": "yeni"
+    },
+    "LOGO": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 149.6,
+      "rsi": 57.7,
+      "category": "aktif"
+    },
+    "MARTI": {
+      "score": 34,
+      "momentum": 0,
+      "health": 0,
+      "volume": 34,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 1.17,
+      "rsi": 18.3,
+      "category": "son"
+    },
+    "MEPET": {
+      "score": 48,
+      "momentum": 0,
+      "health": 33,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 21.18,
+      "rsi": 50.1,
+      "category": "yeni"
+    },
+    "MPARK": {
+      "score": 40,
+      "momentum": 0,
+      "health": 15,
+      "volume": 25,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 434.75,
+      "rsi": 48.3,
+      "category": "son"
+    },
+    "ORGE": {
+      "score": 48,
+      "momentum": 0,
+      "health": 33,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 23.38,
+      "rsi": 54.6,
+      "category": "son"
+    },
+    "PETKM": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 19.55,
+      "rsi": 30.7,
+      "category": "son"
+    },
+    "RYSAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 25.02,
+      "rsi": 41.3,
+      "category": "son"
+    },
+    "SOKM": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 57.15,
+      "rsi": 40.1,
+      "category": "yeni"
+    },
+    "TAVHL": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 266.25,
+      "rsi": 49.6,
+      "category": "son"
+    },
+    "TOASO": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 259.25,
+      "rsi": 36.7,
+      "category": "son"
+    },
+    "TRCAS": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 44.8,
+      "rsi": 32.8,
+      "category": "son"
+    },
+    "TUCLK": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 3.85,
+      "rsi": 50.5,
+      "category": "aktif"
+    },
+    "TUKAS": {
+      "score": 40,
+      "momentum": 0,
+      "health": 15,
+      "volume": 25,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 1.94,
+      "rsi": 45.5,
+      "category": "aktif"
+    },
+    "UNLU": {
+      "score": 49,
+      "momentum": 0,
+      "health": 15,
+      "volume": 34,
+      "ha": "SAT",
+      "ha_streak": 4,
+      "price": 10.28,
+      "rsi": 48.7,
+      "category": "aktif"
+    },
+    "YKBNK": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 34.94,
+      "rsi": 44.0,
+      "category": "son"
+    },
+    "YKSLN": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 2.08,
+      "rsi": 13.3,
+      "category": "son"
+    }
   }
 }
