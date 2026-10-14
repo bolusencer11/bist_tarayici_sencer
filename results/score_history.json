@@ -59463,5 +59463,337 @@
       "rsi": 40.7,
       "category": "son"
     }
+  },
+  "2026-10-14": {
+    "ALARK": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 108.3,
+      "rsi": 55.7,
+      "category": "yeni"
+    },
+    "ALBRK": {
+      "score": 50,
+      "momentum": 20,
+      "health": 25,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 8.8,
+      "rsi": 66.2,
+      "category": "aktif"
+    },
+    "AVGYO": {
+      "score": 30,
+      "momentum": 0,
+      "health": 15,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 15.41,
+      "rsi": 46.2,
+      "category": "son"
+    },
+    "BIMAS": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 408.0,
+      "rsi": 40.9,
+      "category": "son"
+    },
+    "BRSAN": {
+      "score": 48,
+      "momentum": 0,
+      "health": 33,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 661.5,
+      "rsi": 53.3,
+      "category": "son"
+    },
+    "CCOLA": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 81.05,
+      "rsi": 60.3,
+      "category": "aktif"
+    },
+    "DURDO": {
+      "score": 77,
+      "momentum": 33,
+      "health": 10,
+      "volume": 34,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 7.01,
+      "rsi": 85.5,
+      "category": "aktif"
+    },
+    "DZGYO": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 6.92,
+      "rsi": 54.1,
+      "category": "yeni"
+    },
+    "EKGYO": {
+      "score": 50,
+      "momentum": 20,
+      "health": 15,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 19.51,
+      "rsi": 49.0,
+      "category": "yeni"
+    },
+    "ENJSA": {
+      "score": 60,
+      "momentum": 20,
+      "health": 25,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 112.8,
+      "rsi": 67.0,
+      "category": "aktif"
+    },
+    "ENTRA": {
+      "score": 87,
+      "momentum": 20,
+      "health": 33,
+      "volume": 34,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 4.34,
+      "rsi": 61.4,
+      "category": "yeni"
+    },
+    "FLAP": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 10.95,
+      "rsi": 32.0,
+      "category": "son"
+    },
+    "GLYHO": {
+      "score": 45,
+      "momentum": 20,
+      "health": 10,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 17.71,
+      "rsi": 76.0,
+      "category": "aktif"
+    },
+    "HALKB": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 43.06,
+      "rsi": 33.4,
+      "category": "son"
+    },
+    "INDES": {
+      "score": 63,
+      "momentum": 33,
+      "health": 25,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 11.82,
+      "rsi": 69.0,
+      "category": "aktif"
+    },
+    "KRPLS": {
+      "score": 20,
+      "momentum": 0,
+      "health": 15,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 1,
+      "price": 11.01,
+      "rsi": 45.4,
+      "category": "son"
+    },
+    "LMKDC": {
+      "score": 38,
+      "momentum": 0,
+      "health": 33,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 22.92,
+      "rsi": 54.3,
+      "category": "aktif"
+    },
+    "MEPET": {
+      "score": 5,
+      "momentum": 0,
+      "health": 0,
+      "volume": 5,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 19.98,
+      "rsi": 36.7,
+      "category": "aktif"
+    },
+    "MPARK": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 426.75,
+      "rsi": 50.1,
+      "category": "aktif"
+    },
+    "NUHCM": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 209.3,
+      "rsi": 53.3,
+      "category": "son"
+    },
+    "ORGE": {
+      "score": 58,
+      "momentum": 20,
+      "health": 33,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 22.72,
+      "rsi": 51.1,
+      "category": "aktif"
+    },
+    "OTKAR": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "ha": "SAT",
+      "ha_streak": 2,
+      "price": 327.0,
+      "rsi": 58.8,
+      "category": "aktif"
+    },
+    "RGYAS": {
+      "score": 71,
+      "momentum": 33,
+      "health": 33,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 193.6,
+      "rsi": 62.7,
+      "category": "yeni"
+    },
+    "RYSAS": {
+      "score": 38,
+      "momentum": 33,
+      "health": 0,
+      "volume": 5,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 26.08,
+      "rsi": 44.1,
+      "category": "yeni"
+    },
+    "SANKO": {
+      "score": 78,
+      "momentum": 20,
+      "health": 33,
+      "volume": 25,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 19.79,
+      "rsi": 57.3,
+      "category": "aktif"
+    },
+    "SKYMD": {
+      "score": 15,
+      "momentum": 0,
+      "health": 0,
+      "volume": 15,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 12.75,
+      "rsi": 37.3,
+      "category": "son"
+    },
+    "SOKM": {
+      "score": 81,
+      "momentum": 33,
+      "health": 33,
+      "volume": 15,
+      "ha": "AL",
+      "ha_streak": 1,
+      "price": 58.6,
+      "rsi": 54.2,
+      "category": "yeni"
+    },
+    "TAVHL": {
+      "score": 73,
+      "momentum": 33,
+      "health": 15,
+      "volume": 25,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 271.25,
+      "rsi": 49.1,
+      "category": "aktif"
+    },
+    "TUCLK": {
+      "score": 25,
+      "momentum": 0,
+      "health": 0,
+      "volume": 25,
+      "ha": "SAT",
+      "ha_streak": 5,
+      "price": 2.8,
+      "rsi": 31.3,
+      "category": "son"
+    },
+    "YKBNK": {
+      "score": 68,
+      "momentum": 20,
+      "health": 33,
+      "volume": 15,
+      "ha": null,
+      "ha_streak": 0,
+      "price": 35.94,
+      "rsi": 51.5,
+      "category": "aktif"
+    }
   }
 }
